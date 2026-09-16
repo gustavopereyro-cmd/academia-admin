@@ -1,0 +1,638 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Panel Academia Virtual</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --plum:#6B2737;
+    --plum-dark:#511D2A;
+    --rose:#C97B84;
+    --cream:#FAF7F2;
+    --card:#FFFFFF;
+    --ink:#2B2420;
+    --ink-soft:#6B6058;
+    --line:#E7E0D6;
+    --success:#4F7942;
+    --error:#B3452C;
+    --radius:10px;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    font-family:'Inter',sans-serif;
+    background:var(--cream);
+    color:var(--ink);
+  }
+  h1,h2,h3{
+    font-family:'Fraunces',serif;
+    font-weight:600;
+    margin:0;
+    color:var(--plum-dark);
+  }
+  /* ---------- LOGIN ---------- */
+  #login-screen{
+    position:fixed; inset:0;
+    display:flex; align-items:center; justify-content:center;
+    background:var(--plum);
+    z-index:100;
+  }
+  .login-box{
+    background:var(--card);
+    padding:48px 40px;
+    border-radius:var(--radius);
+    width:320px;
+    text-align:left;
+  }
+  .login-box h1{font-size:26px; margin-bottom:6px;}
+  .login-box p{color:var(--ink-soft); font-size:14px; margin:0 0 24px;}
+  .login-box input{width:100%; margin-bottom:14px;}
+  .login-error{color:var(--error); font-size:13px; min-height:18px; margin-bottom:6px;}
+
+  /* ---------- LAYOUT ---------- */
+  #app{display:none; min-height:100vh;}
+  .shell{display:flex; min-height:100vh;}
+  aside{
+    width:220px; flex-shrink:0;
+    background:var(--plum);
+    color:#F3E9E6;
+    padding:28px 16px;
+  }
+  aside h2{color:#fff; font-size:19px; padding:0 8px 20px; border-bottom:1px solid rgba(255,255,255,.15); margin-bottom:16px;}
+  .nav-btn{
+    display:block; width:100%; text-align:left;
+    background:none; border:none; color:#F3E9E6;
+    font-family:'Inter',sans-serif; font-size:15px;
+    padding:11px 12px; border-radius:8px; cursor:pointer;
+    margin-bottom:2px;
+  }
+  .nav-btn:hover{background:rgba(255,255,255,.08);}
+  .nav-btn.active{background:var(--rose); color:#fff; font-weight:600;}
+  .logout{
+    margin-top:24px; font-size:13px; color:#E0C7C2;
+    background:none; border:none; cursor:pointer; padding:8px 12px;
+  }
+  main{flex:1; padding:36px 44px; max-width:1100px;}
+  .section-head{display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:22px;}
+  .section-head p{color:var(--ink-soft); font-size:14px; margin:4px 0 0;}
+  .btn{
+    font-family:'Inter',sans-serif; font-weight:600; font-size:14px;
+    padding:10px 18px; border-radius:8px; border:none; cursor:pointer;
+  }
+  .btn-primary{background:var(--plum); color:#fff;}
+  .btn-primary:hover{background:var(--plum-dark);}
+  .btn-secondary{background:transparent; color:var(--plum); border:1px solid var(--line);}
+  .btn-secondary:hover{border-color:var(--plum);}
+  .btn-danger{background:transparent; color:var(--error); border:1px solid var(--line); padding:6px 10px; font-size:13px;}
+  .btn-danger:hover{border-color:var(--error);}
+  .btn-small{padding:6px 12px; font-size:13px;}
+
+  table{width:100%; border-collapse:collapse; background:var(--card); border-radius:var(--radius); overflow:hidden; box-shadow:0 1px 2px rgba(0,0,0,.04);}
+  th,td{text-align:left; padding:12px 14px; font-size:14px; border-bottom:1px solid var(--line);}
+  th{color:var(--ink-soft); font-weight:600; font-size:12.5px;}
+  tr:last-child td{border-bottom:none;}
+  td.actions{white-space:nowrap; text-align:right;}
+  .thumb{width:44px; height:44px; object-fit:cover; border-radius:6px; vertical-align:middle;}
+  .empty-row td{text-align:center; color:var(--ink-soft); padding:30px;}
+
+  /* ---------- FORM PANEL (slide-in) ---------- */
+  .overlay{position:fixed; inset:0; background:rgba(43,36,32,.35); display:none; z-index:50;}
+  .form-panel{
+    position:fixed; top:0; right:0; height:100%; width:420px;
+    background:var(--card); box-shadow:-4px 0 20px rgba(0,0,0,.1);
+    padding:32px; overflow-y:auto; z-index:51;
+  }
+  .form-panel h3{font-size:20px; margin-bottom:20px;}
+  .field{margin-bottom:16px;}
+  .field label{display:block; font-size:13px; font-weight:600; color:var(--ink-soft); margin-bottom:6px;}
+  input, select, textarea{
+    width:100%; padding:10px 12px; border:1px solid var(--line); border-radius:7px;
+    font-family:'Inter',sans-serif; font-size:14px; background:#fff; color:var(--ink);
+  }
+  textarea{resize:vertical; min-height:70px;}
+  input:focus, select:focus, textarea:focus{outline:2px solid var(--rose); outline-offset:1px; border-color:var(--rose);}
+  .form-actions{display:flex; gap:10px; margin-top:24px;}
+  .upload-row{display:flex; align-items:center; gap:10px;}
+  .upload-preview{width:52px; height:52px; border-radius:7px; object-fit:cover; border:1px solid var(--line); display:none;}
+  .upload-status{font-size:12.5px; color:var(--ink-soft);}
+  .field-hint{font-size:12px; color:var(--ink-soft); margin-top:5px;}
+
+  .toast{
+    position:fixed; bottom:24px; left:50%; transform:translateX(-50%);
+    background:var(--ink); color:#fff; padding:12px 20px; border-radius:8px;
+    font-size:14px; z-index:200; display:none;
+  }
+  .toast.error{background:var(--error);}
+</style>
+</head>
+<body>
+
+<!-- ===================== LOGIN ===================== -->
+<div id="login-screen">
+  <div class="login-box">
+    <h1>Panel Academia</h1>
+    <p>Ingresá con tu usuario y contraseña de administrador.</p>
+    <div class="field">
+      <label for="login-user">Usuario</label>
+      <input id="login-user" type="text" autocomplete="username">
+    </div>
+    <div class="field">
+      <label for="login-pass">Contraseña</label>
+      <input id="login-pass" type="password" autocomplete="current-password">
+    </div>
+    <div class="login-error" id="login-error"></div>
+    <button class="btn btn-primary" style="width:100%" onclick="doLogin()">Ingresar</button>
+  </div>
+</div>
+
+<!-- ===================== APP ===================== -->
+<div id="app">
+  <div class="shell">
+    <aside>
+      <h2>Academia Virtual</h2>
+      <button class="nav-btn active" data-tab="cursos" onclick="switchTab('cursos')">Cursos</button>
+      <button class="nav-btn" data-tab="clases" onclick="switchTab('clases')">Clases</button>
+      <button class="nav-btn" data-tab="materiales" onclick="switchTab('materiales')">Materiales</button>
+      <button class="nav-btn" data-tab="alumnos" onclick="switchTab('alumnos')">Alumnos</button>
+      <button class="nav-btn" data-tab="inscripciones" onclick="switchTab('inscripciones')">Inscripciones</button>
+      <button class="logout" onclick="logout()">Cerrar sesión</button>
+    </aside>
+
+    <main>
+      <!-- ---- CURSOS ---- -->
+      <section id="tab-cursos">
+        <div class="section-head">
+          <div><h1>Cursos</h1><p>Programas publicados en la academia.</p></div>
+          <button class="btn btn-primary" onclick="openForm('curso')">+ Nuevo curso</button>
+        </div>
+        <table><thead><tr>
+          <th>Imagen</th><th>ID</th><th>Nombre</th><th>Duración</th><th>Precio ARS</th><th>Precio USD</th><th></th>
+        </tr></thead><tbody id="tbody-cursos"></tbody></table>
+      </section>
+
+      <!-- ---- CLASES ---- -->
+      <section id="tab-clases" style="display:none">
+        <div class="section-head">
+          <div><h1>Clases</h1><p>Contenido de video por curso.</p></div>
+          <button class="btn btn-primary" onclick="openForm('clase')">+ Nueva clase</button>
+        </div>
+        <table><thead><tr>
+          <th>ID</th><th>Curso</th><th>Orden</th><th>Título</th><th>Video</th><th></th>
+        </tr></thead><tbody id="tbody-clases"></tbody></table>
+      </section>
+
+      <!-- ---- MATERIALES ---- -->
+      <section id="tab-materiales" style="display:none">
+        <div class="section-head">
+          <div><h1>Materiales</h1><p>Documentos PDF asociados a cada clase.</p></div>
+          <button class="btn btn-primary" onclick="openForm('material')">+ Nuevo material</button>
+        </div>
+        <table><thead><tr>
+          <th>ID</th><th>Clase</th><th>Nombre del PDF</th><th>Archivo</th><th></th>
+        </tr></thead><tbody id="tbody-materiales"></tbody></table>
+      </section>
+
+      <!-- ---- ALUMNOS ---- -->
+      <section id="tab-alumnos" style="display:none">
+        <div class="section-head">
+          <div><h1>Alumnos</h1><p>Personas registradas en la academia.</p></div>
+          <button class="btn btn-primary" onclick="openForm('alumno')">+ Nuevo alumno</button>
+        </div>
+        <table><thead><tr>
+          <th>ID</th><th>Nombre</th><th>Email</th><th>Teléfono</th><th>Ciudad</th><th></th>
+        </tr></thead><tbody id="tbody-alumnos"></tbody></table>
+      </section>
+
+      <!-- ---- INSCRIPCIONES ---- -->
+      <section id="tab-inscripciones" style="display:none">
+        <div class="section-head">
+          <div><h1>Inscripciones</h1><p>Qué alumno está anotado en qué curso.</p></div>
+          <button class="btn btn-primary" onclick="openForm('inscripcion')">+ Nueva inscripción</button>
+        </div>
+        <table><thead><tr>
+          <th>Alumno</th><th>Curso</th><th>Fecha de alta</th><th>Habilitado</th><th></th>
+        </tr></thead><tbody id="tbody-inscripciones"></tbody></table>
+      </section>
+    </main>
+  </div>
+</div>
+
+<!-- ===================== FORM PANEL (genérico) ===================== -->
+<div class="overlay" id="overlay" onclick="closeForm()"></div>
+<div class="form-panel" id="form-panel" style="display:none"></div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ============================================================
+   CONFIGURACIÓN — completá estos 3 valores antes de usar
+   ============================================================ */
+const API_URL = 'https://script.google.com/macros/s/AKfycbzyGiSnozdfWIIVSy1PY25WqgGS1l8MSssblAv3diG31t_TOCeap_YO-jfeSg7TIY2Q/exec';
+const CLOUDINARY_CLOUD_NAME = 'PEGA_AQUI_TU_CLOUD_NAME';
+const CLOUDINARY_UPLOAD_PRESET = 'PEGA_AQUI_TU_UPLOAD_PRESET';
+
+/* ============================================================
+   ESTADO EN MEMORIA
+   ============================================================ */
+let DATA = { cursos: [], clases: [], materiales: [], alumnos: [], inscripciones: [] };
+let currentTab = 'cursos';
+
+/* ============================================================
+   LLAMADAS A LA API (Apps Script)
+   ============================================================ */
+async function api(action, payload) {
+  const res = await fetch(API_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' }, // evita preflight CORS
+    body: JSON.stringify({ action, ...payload })
+  });
+  const json = await res.json();
+  if (json.error) throw new Error(json.error);
+  return json;
+}
+
+/* ============================================================
+   LOGIN
+   ============================================================ */
+async function doLogin() {
+  const usuario = document.getElementById('login-user').value.trim();
+  const password = document.getElementById('login-pass').value;
+  const errorEl = document.getElementById('login-error');
+  errorEl.textContent = '';
+  if (!usuario || !password) { errorEl.textContent = 'Completá usuario y contraseña.'; return; }
+  try {
+    const result = await api('login', { usuario, password });
+    if (result.success) {
+      sessionStorage.setItem('panel_logueado', '1');
+      document.getElementById('login-screen').style.display = 'none';
+      document.getElementById('app').style.display = 'block';
+      loadAll();
+    } else {
+      errorEl.textContent = 'Usuario o contraseña incorrectos.';
+    }
+  } catch (e) {
+    errorEl.textContent = 'No se pudo conectar con el servidor: ' + e.message;
+  }
+}
+function logout() {
+  sessionStorage.removeItem('panel_logueado');
+  location.reload();
+}
+if (sessionStorage.getItem('panel_logueado') === '1') {
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('app').style.display = 'block';
+  loadAll();
+}
+
+/* ============================================================
+   CARGA DE DATOS
+   ============================================================ */
+async function loadAll() {
+  try {
+    const [cursos, clases, materiales, alumnos, inscripciones] = await Promise.all([
+      api('getCursos', {}), api('getClases', {}), api('getMateriales', {}),
+      api('getAlumnos', {}), api('getInscripciones', {})
+    ]);
+    DATA.cursos = cursos; DATA.clases = clases; DATA.materiales = materiales;
+    DATA.alumnos = alumnos; DATA.inscripciones = inscripciones;
+    renderAll();
+  } catch (e) {
+    showToast('Error cargando datos: ' + e.message, true);
+  }
+}
+
+function renderAll() {
+  renderCursos(); renderClases(); renderMateriales(); renderAlumnos(); renderInscripciones();
+}
+
+function switchTab(tab) {
+  currentTab = tab;
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
+  ['cursos','clases','materiales','alumnos','inscripciones'].forEach(t => {
+    document.getElementById('tab-' + t).style.display = (t === tab) ? 'block' : 'none';
+  });
+}
+
+/* ============================================================
+   RENDER DE TABLAS
+   ============================================================ */
+function renderCursos() {
+  const tbody = document.getElementById('tbody-cursos');
+  if (!DATA.cursos.length) { tbody.innerHTML = emptyRow(7, 'Todavía no cargaste ningún curso.'); return; }
+  tbody.innerHTML = DATA.cursos.map(c => `
+    <tr>
+      <td>${c.Imagen_URL ? `<img class="thumb" src="${esc(c.Imagen_URL)}">` : '—'}</td>
+      <td>${esc(c.ID_Curso)}</td>
+      <td>${esc(c.Nombre)}</td>
+      <td>${esc(c.Duracion)}</td>
+      <td>$${esc(c.Precio_ARS)}</td>
+      <td>US$${esc(c.Precio_USD)}</td>
+      <td class="actions">
+        <button class="btn btn-secondary btn-small" onclick="openForm('curso', ${c._row})">Editar</button>
+        <button class="btn btn-danger" onclick="removeItem('Curso', 'cursos', ${c._row})">Borrar</button>
+      </td>
+    </tr>`).join('');
+}
+
+function renderClases() {
+  const tbody = document.getElementById('tbody-clases');
+  if (!DATA.clases.length) { tbody.innerHTML = emptyRow(6, 'Todavía no cargaste ninguna clase.'); return; }
+  tbody.innerHTML = DATA.clases.map(c => `
+    <tr>
+      <td>${esc(c.ID_Clase)}</td>
+      <td>${cursoNombre(c.ID_Curso)}</td>
+      <td>${esc(c.Orden)}</td>
+      <td>${esc(c.Titulo)}</td>
+      <td>${c.VIDEO ? 'Cargado ✓' : '—'}</td>
+      <td class="actions">
+        <button class="btn btn-secondary btn-small" onclick="openForm('clase', ${c._row})">Editar</button>
+        <button class="btn btn-danger" onclick="removeItem('Clase', 'clases', ${c._row})">Borrar</button>
+      </td>
+    </tr>`).join('');
+}
+
+function renderMateriales() {
+  const tbody = document.getElementById('tbody-materiales');
+  if (!DATA.materiales.length) { tbody.innerHTML = emptyRow(5, 'Todavía no cargaste ningún material.'); return; }
+  tbody.innerHTML = DATA.materiales.map(m => `
+    <tr>
+      <td>${esc(m.ID_Material)}</td>
+      <td>${claseTitulo(m.ID_Clase)}</td>
+      <td>${esc(m.Nombre_PDF)}</td>
+      <td>${m.Link_PDF ? `<a href="${esc(m.Link_PDF)}" target="_blank">Ver PDF</a>` : '—'}</td>
+      <td class="actions">
+        <button class="btn btn-secondary btn-small" onclick="openForm('material', ${m._row})">Editar</button>
+        <button class="btn btn-danger" onclick="removeItem('Material', 'materiales', ${m._row})">Borrar</button>
+      </td>
+    </tr>`).join('');
+}
+
+function renderAlumnos() {
+  const tbody = document.getElementById('tbody-alumnos');
+  if (!DATA.alumnos.length) { tbody.innerHTML = emptyRow(6, 'Todavía no cargaste ningún alumno.'); return; }
+  tbody.innerHTML = DATA.alumnos.map(a => `
+    <tr>
+      <td>${esc(a.ID_Alumno)}</td>
+      <td>${esc(a.Nombre)}</td>
+      <td>${esc(a.Email)}</td>
+      <td>${esc(a.Telefono)}</td>
+      <td>${esc(a.Ciudad)}</td>
+      <td class="actions">
+        <button class="btn btn-secondary btn-small" onclick="openForm('alumno', ${a._row})">Editar</button>
+        <button class="btn btn-danger" onclick="removeItem('Alumno', 'alumnos', ${a._row})">Borrar</button>
+      </td>
+    </tr>`).join('');
+}
+
+function renderInscripciones() {
+  const tbody = document.getElementById('tbody-inscripciones');
+  if (!DATA.inscripciones.length) { tbody.innerHTML = emptyRow(5, 'Todavía no cargaste ninguna inscripción.'); return; }
+  tbody.innerHTML = DATA.inscripciones.map(i => `
+    <tr>
+      <td>${alumnoNombre(i.ID_Alumno)}</td>
+      <td>${cursoNombre(i.ID_Curso)}</td>
+      <td>${esc(i.Fecha_Alta)}</td>
+      <td>${esc(i.Habilitado)}</td>
+      <td class="actions">
+        <button class="btn btn-secondary btn-small" onclick="openForm('inscripcion', ${i._row})">Editar</button>
+        <button class="btn btn-danger" onclick="removeItem('Inscripción', 'inscripciones', ${i._row})">Borrar</button>
+      </td>
+    </tr>`).join('');
+}
+
+function emptyRow(colspan, msg) { return `<tr class="empty-row"><td colspan="${colspan}">${msg}</td></tr>`; }
+function esc(v) { return (v === undefined || v === null) ? '' : String(v).replace(/[&<>"]/g, s => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[s])); }
+function cursoNombre(id) { const c = DATA.cursos.find(x => x.ID_Curso === id); return c ? esc(c.Nombre) : esc(id); }
+function claseTitulo(id) { const c = DATA.clases.find(x => x.ID_Clase === id); return c ? esc(c.Titulo) : esc(id); }
+function alumnoNombre(id) { const a = DATA.alumnos.find(x => String(x.ID_Alumno) === String(id)); return a ? esc(a.Nombre) : esc(id); }
+
+/* ============================================================
+   BORRAR
+   ============================================================ */
+async function removeItem(label, key, row) {
+  if (!confirm(`¿Seguro que querés borrar este ${label.toLowerCase()}? Esta acción no se puede deshacer.`)) return;
+  const actionMap = { cursos:'deleteCurso', clases:'deleteClase', materiales:'deleteMaterial', alumnos:'deleteAlumno', inscripciones:'deleteInscripcion' };
+  try {
+    await api(actionMap[key], { row });
+    showToast(label + ' borrado correctamente.');
+    await loadAll();
+  } catch (e) {
+    showToast('Error al borrar: ' + e.message, true);
+  }
+}
+
+/* ============================================================
+   FORMULARIOS (alta / edición)
+   ============================================================ */
+const FORM_DEFS = {
+  curso: {
+    title: 'Curso', addAction: 'addCurso', updAction: 'updateCurso', dataKey: 'cursos', idKey: 'ID_Curso',
+    fields: [
+      {name:'Nombre', label:'Nombre del curso', type:'text', required:true},
+      {name:'Descripcion_Programa', label:'Descripción corta', type:'textarea'},
+      {name:'Imagen_URL', label:'Imagen de portada', type:'image'},
+      {name:'Fecha_Inicio_Publicacion', label:'Fecha de inicio de publicación', type:'date'},
+      {name:'Fecha_Fin_Publicacion', label:'Fecha de fin de publicación', type:'date'},
+      {name:'Puntaje_Minimo_Aprobacion', label:'Puntaje mínimo de aprobación', type:'number'},
+      {name:'Duracion', label:'Duración (ej: 40 hs)', type:'text'},
+      {name:'Precio_ARS', label:'Precio en ARS', type:'number'},
+      {name:'Precio_USD', label:'Precio en USD', type:'number'},
+      {name:'Descripcion_Larga', label:'Descripción larga', type:'textarea'},
+      {name:'Numero_Acta', label:'Número de acta', type:'text'}
+    ]
+  },
+  clase: {
+    title: 'Clase', addAction: 'addClase', updAction: 'updateClase', dataKey: 'clases', idKey: 'ID_Clase',
+    fields: [
+      {name:'ID_Curso', label:'Curso', type:'select', source:'cursos', optionValue:'ID_Curso', optionLabel:'Nombre', required:true},
+      {name:'Orden', label:'Orden dentro del curso', type:'number', required:true},
+      {name:'Titulo', label:'Título de la clase', type:'text', required:true},
+      {name:'VIDEO', label:'Video de YouTube (ID o link)', type:'youtube'}
+    ]
+  },
+  material: {
+    title: 'Material', addAction: 'addMaterial', updAction: 'updateMaterial', dataKey: 'materiales', idKey: 'ID_Material',
+    fields: [
+      {name:'ID_Clase', label:'Clase', type:'select', source:'clases', optionValue:'ID_Clase', optionLabel:'Titulo', required:true},
+      {name:'Nombre_PDF', label:'Nombre del archivo', type:'text', required:true},
+      {name:'Link_PDF', label:'Archivo PDF', type:'file'}
+    ]
+  },
+  alumno: {
+    title: 'Alumno', addAction: 'addAlumno', updAction: 'updateAlumno', dataKey: 'alumnos', idKey: 'ID_Alumno',
+    fields: [
+      {name:'ID_Alumno', label:'ID de alumno (ej: DNI)', type:'text', required:true, lockOnEdit:true},
+      {name:'Nombre', label:'Nombre completo', type:'text', required:true},
+      {name:'Email', label:'Email', type:'text', required:true},
+      {name:'Password', label:'Contraseña de acceso', type:'text', required:true},
+      {name:'Telefono', label:'Teléfono', type:'text'},
+      {name:'Ciudad', label:'Ciudad', type:'text'},
+      {name:'Pais', label:'País', type:'text'}
+    ]
+  },
+  inscripcion: {
+    title: 'Inscripción', addAction: 'addInscripcion', updAction: 'updateInscripcion', dataKey: 'inscripciones', idKey: null,
+    fields: [
+      {name:'ID_Alumno', label:'Alumno', type:'select', source:'alumnos', optionValue:'ID_Alumno', optionLabel:'Nombre', required:true},
+      {name:'ID_Curso', label:'Curso', type:'select', source:'cursos', optionValue:'ID_Curso', optionLabel:'Nombre', required:true},
+      {name:'Fecha_Alta', label:'Fecha de alta', type:'date'},
+      {name:'Habilitado', label:'Habilitado', type:'select-fixed', options:['Si','No'], required:true}
+    ]
+  }
+};
+
+let editingRow = null; // null = alta nueva, número = edición
+
+function openForm(kind, row) {
+  editingRow = row || null;
+  const def = FORM_DEFS[kind];
+  const existing = row ? DATA[def.dataKey].find(x => x._row === row) : null;
+
+  let html = `<h3>${existing ? 'Editar' : 'Nuevo'} ${def.title.toLowerCase()}</h3><div id="form-fields">`;
+  def.fields.forEach(f => { html += renderField(f, existing); });
+  html += `</div>
+    <div class="form-actions">
+      <button class="btn btn-primary" onclick="submitForm('${kind}')">Guardar</button>
+      <button class="btn btn-secondary" onclick="closeForm()">Cancelar</button>
+    </div>`;
+
+  document.getElementById('form-panel').innerHTML = html;
+  document.getElementById('form-panel').style.display = 'block';
+  document.getElementById('overlay').style.display = 'block';
+}
+
+function renderField(f, existing) {
+  const val = existing ? (existing[f.name] ?? '') : '';
+  const id = 'f_' + f.name;
+
+  if (f.type === 'select') {
+    const options = DATA[f.source].map(item =>
+      `<option value="${esc(item[f.optionValue])}" ${String(item[f.optionValue])===String(val)?'selected':''}>${esc(item[f.optionLabel])}</option>`
+    ).join('');
+    return `<div class="field"><label>${f.label}</label><select id="${id}"><option value="">Seleccioná...</option>${options}</select></div>`;
+  }
+  if (f.type === 'select-fixed') {
+    const options = f.options.map(o => `<option value="${o}" ${o===val?'selected':''}>${o}</option>`).join('');
+    return `<div class="field"><label>${f.label}</label><select id="${id}">${options}</select></div>`;
+  }
+  if (f.type === 'textarea') {
+    return `<div class="field"><label>${f.label}</label><textarea id="${id}">${esc(val)}</textarea></div>`;
+  }
+  if (f.type === 'date') {
+    return `<div class="field"><label>${f.label}</label><input type="date" id="${id}" value="${esc(val)}"></div>`;
+  }
+  if (f.type === 'number') {
+    return `<div class="field"><label>${f.label}</label><input type="number" id="${id}" value="${esc(val)}"></div>`;
+  }
+  if (f.type === 'youtube') {
+    return `<div class="field"><label>${f.label}</label><input type="text" id="${id}" value="${esc(val)}" placeholder="Pegá el link o el ID del video">
+      <div class="field-hint">Podés pegar el link completo de YouTube; se guarda el ID automáticamente.</div></div>`;
+  }
+  if (f.type === 'image' || f.type === 'file') {
+    const isImg = f.type === 'image';
+    return `<div class="field"><label>${f.label}</label>
+      <input type="hidden" id="${id}" value="${esc(val)}">
+      <div class="upload-row">
+        <input type="file" id="${id}_file" accept="${isImg ? 'image/*' : 'application/pdf'}" onchange="handleUpload('${id}', this, ${isImg})">
+        ${isImg ? `<img class="upload-preview" id="${id}_preview" src="${esc(val)}" style="${val?'display:inline-block':''}">` : ''}
+      </div>
+      <div class="upload-status" id="${id}_status">${val ? 'Archivo cargado.' : ''}</div>
+    </div>`;
+  }
+  // text por defecto
+  const lock = (f.lockOnEdit && existing) ? 'disabled' : '';
+  return `<div class="field"><label>${f.label}</label><input type="text" id="${id}" value="${esc(val)}" ${lock}></div>`;
+}
+
+function closeForm() {
+  document.getElementById('form-panel').style.display = 'none';
+  document.getElementById('overlay').style.display = 'none';
+  editingRow = null;
+}
+
+/* Subida de archivos a Cloudinary (sin pasar por Google Drive) */
+async function handleUpload(fieldId, input, isImage) {
+  const file = input.files[0];
+  if (!file) return;
+  const statusEl = document.getElementById(fieldId + '_status');
+  statusEl.textContent = 'Subiendo...';
+  try {
+    const form = new FormData();
+    form.append('file', file);
+    form.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
+    const resourceType = isImage ? 'image' : 'raw';
+    const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/${resourceType}/upload`, {
+      method: 'POST', body: form
+    });
+    const json = await res.json();
+    if (json.secure_url) {
+      document.getElementById(fieldId).value = json.secure_url;
+      statusEl.textContent = 'Archivo cargado correctamente.';
+      if (isImage) {
+        const prev = document.getElementById(fieldId + '_preview');
+        prev.src = json.secure_url;
+        prev.style.display = 'inline-block';
+      }
+    } else {
+      statusEl.textContent = 'Error al subir: ' + (json.error ? json.error.message : 'desconocido');
+    }
+  } catch (e) {
+    statusEl.textContent = 'Error al subir: ' + e.message;
+  }
+}
+
+function extractYoutubeId(value) {
+  if (!value) return value;
+  const patterns = [/[?&]v=([^&]+)/, /youtu\.be\/([^?&]+)/, /youtube\.com\/embed\/([^?&]+)/];
+  for (const p of patterns) { const m = value.match(p); if (m) return m[1]; }
+  return value; // ya era un ID
+}
+
+async function submitForm(kind) {
+  const def = FORM_DEFS[kind];
+  const data = {};
+  for (const f of def.fields) {
+    const el = document.getElementById('f_' + f.name);
+    if (!el) continue;
+    let value = el.value;
+    if (f.type === 'youtube') value = extractYoutubeId(value);
+    if (f.required && !value) {
+      showToast('Falta completar: ' + f.label, true);
+      return;
+    }
+    data[f.name] = value;
+  }
+
+  try {
+    if (editingRow) {
+      await api(def.updAction, { row: editingRow, data });
+      showToast(def.title + ' actualizado correctamente.');
+    } else {
+      await api(def.addAction, { data });
+      showToast(def.title + ' agregado correctamente.');
+    }
+    closeForm();
+    await loadAll();
+  } catch (e) {
+    showToast('Error al guardar: ' + e.message, true);
+  }
+}
+
+/* ============================================================
+   TOAST
+   ============================================================ */
+let toastTimer;
+function showToast(msg, isError) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = 'toast' + (isError ? ' error' : '');
+  el.style.display = 'block';
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { el.style.display = 'none'; }, 3500);
+}
+</script>
+</body>
+</html>
