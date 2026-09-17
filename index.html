@@ -231,8 +231,6 @@
    CONFIGURACIÓN — completá estos 3 valores antes de usar
    ============================================================ */
 const API_URL = 'https://script.google.com/macros/s/AKfycbzyGiSnozdfWIIVSy1PY25WqgGS1l8MSssblAv3diG31t_TOCeap_YO-jfeSg7TIY2Q/exec';
-const CLOUDINARY_CLOUD_NAME = 'PEGA_AQUI_TU_CLOUD_NAME';
-const CLOUDINARY_UPLOAD_PRESET = 'PEGA_AQUI_TU_UPLOAD_PRESET';
 
 /* ============================================================
    ESTADO EN MEMORIA
@@ -553,31 +551,34 @@ function closeForm() {
   editingRow = null;
 }
 
-/* Subida de archivos a Cloudinary (sin pasar por Google Drive) */
+/* Subida de archivos a Google Drive (a través del Apps Script del panel) */
+function fileToBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result.split(',')[1]); // quita el prefijo "data:...;base64,"
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
 async function handleUpload(fieldId, input, isImage) {
   const file = input.files[0];
   if (!file) return;
   const statusEl = document.getElementById(fieldId + '_status');
   statusEl.textContent = 'Subiendo...';
   try {
-    const form = new FormData();
-    form.append('file', file);
-    form.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
-    const resourceType = isImage ? 'image' : 'raw';
-    const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/${resourceType}/upload`, {
-      method: 'POST', body: form
-    });
-    const json = await res.json();
-    if (json.secure_url) {
-      document.getElementById(fieldId).value = json.secure_url;
+    const base64Data = await fileToBase64(file);
+    const result = await api('uploadFile', { fileName: file.name, mimeType: file.type, fileData: base64Data });
+    if (result.success) {
+      document.getElementById(fieldId).value = result.url;
       statusEl.textContent = 'Archivo cargado correctamente.';
       if (isImage) {
         const prev = document.getElementById(fieldId + '_preview');
-        prev.src = json.secure_url;
+        prev.src = result.url;
         prev.style.display = 'inline-block';
       }
     } else {
-      statusEl.textContent = 'Error al subir: ' + (json.error ? json.error.message : 'desconocido');
+      statusEl.textContent = 'Error al subir: ' + (result.error || 'desconocido');
     }
   } catch (e) {
     statusEl.textContent = 'Error al subir: ' + e.message;
