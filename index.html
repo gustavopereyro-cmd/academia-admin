@@ -126,6 +126,16 @@
     font-size:14px; z-index:200; display:none;
   }
   .toast.error{background:var(--error);}
+
+  /* ---------- CONTENIDOS (dentro de Clase) ---------- */
+  .contenido-item{display:flex; align-items:center; gap:10px; padding:10px 12px; border:1px solid var(--line); border-radius:7px; margin-bottom:8px; background:#fff;}
+  .contenido-item .icono{font-size:18px;}
+  .contenido-item .info{flex:1; min-width:0;}
+  .contenido-item .info strong{display:block; font-size:14px;}
+  .contenido-item .info span{font-size:12px; color:var(--ink-soft);}
+  .contenido-item .acciones{display:flex; gap:4px;}
+  .contenido-item button{padding:5px 9px; font-size:12px;}
+  .divider{border-top:1px solid var(--line); margin:20px 0;}
 </style>
 </head>
 <body>
@@ -155,7 +165,6 @@
       <h2>Academia Virtual</h2>
       <button class="nav-btn active" data-tab="cursos" onclick="switchTab('cursos')">Cursos</button>
       <button class="nav-btn" data-tab="clases" onclick="switchTab('clases')">Clases</button>
-      <button class="nav-btn" data-tab="materiales" onclick="switchTab('materiales')">Materiales</button>
       <button class="nav-btn" data-tab="alumnos" onclick="switchTab('alumnos')">Alumnos</button>
       <button class="nav-btn" data-tab="inscripciones" onclick="switchTab('inscripciones')">Inscripciones</button>
       <button class="logout" onclick="logout()">Cerrar sesión</button>
@@ -176,23 +185,12 @@
       <!-- ---- CLASES ---- -->
       <section id="tab-clases" style="display:none">
         <div class="section-head">
-          <div><h1>Clases</h1><p>Contenido de video por curso.</p></div>
+          <div><h1>Clases</h1><p>Cada clase puede tener varios contenidos: videos y PDFs, en el orden que quieras.</p></div>
           <button class="btn btn-primary" onclick="openForm('clase')">+ Nueva clase</button>
         </div>
         <table><thead><tr>
-          <th>ID</th><th>Curso</th><th>Orden</th><th>Título</th><th>Video</th><th></th>
+          <th>ID</th><th>Curso</th><th>Orden</th><th>Título</th><th>Contenidos</th><th></th>
         </tr></thead><tbody id="tbody-clases"></tbody></table>
-      </section>
-
-      <!-- ---- MATERIALES ---- -->
-      <section id="tab-materiales" style="display:none">
-        <div class="section-head">
-          <div><h1>Materiales</h1><p>Documentos PDF asociados a cada clase.</p></div>
-          <button class="btn btn-primary" onclick="openForm('material')">+ Nuevo material</button>
-        </div>
-        <table><thead><tr>
-          <th>ID</th><th>Clase</th><th>Nombre del PDF</th><th>Archivo</th><th></th>
-        </tr></thead><tbody id="tbody-materiales"></tbody></table>
       </section>
 
       <!-- ---- ALUMNOS ---- -->
@@ -303,13 +301,13 @@ async function loadAll() {
 }
 
 function renderAll() {
-  renderCursos(); renderClases(); renderMateriales(); renderAlumnos(); renderInscripciones();
+  renderCursos(); renderClases(); renderAlumnos(); renderInscripciones();
 }
 
 function switchTab(tab) {
   currentTab = tab;
   document.querySelectorAll('.nav-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
-  ['cursos','clases','materiales','alumnos','inscripciones'].forEach(t => {
+  ['cursos','clases','alumnos','inscripciones'].forEach(t => {
     document.getElementById('tab-' + t).style.display = (t === tab) ? 'block' : 'none';
   });
 }
@@ -338,34 +336,21 @@ function renderCursos() {
 function renderClases() {
   const tbody = document.getElementById('tbody-clases');
   if (!DATA.clases.length) { tbody.innerHTML = emptyRow(6, 'Todavía no cargaste ninguna clase.'); return; }
-  tbody.innerHTML = DATA.clases.map(c => `
+  tbody.innerHTML = DATA.clases.map(c => {
+    const cantidad = DATA.materiales.filter(m => String(m.ID_Clase) === String(c.ID_Clase)).length;
+    return `
     <tr>
       <td>${esc(c.ID_Clase)}</td>
       <td>${cursoNombre(c.ID_Curso)}</td>
       <td>${esc(c.Orden)}</td>
       <td>${esc(c.Titulo)}</td>
-      <td>${c.VIDEO ? 'Cargado ✓' : '—'}</td>
+      <td><button class="btn btn-secondary btn-small" onclick="openContenidos('${c.ID_Clase}')">${cantidad ? cantidad + ' contenido' + (cantidad === 1 ? '' : 's') : 'Agregar contenido'}</button></td>
       <td class="actions">
         <button class="btn btn-secondary btn-small" onclick="openForm('clase', ${c._row})">Editar</button>
         <button class="btn btn-danger" onclick="removeItem('Clase', 'clases', ${c._row})">Borrar</button>
       </td>
-    </tr>`).join('');
-}
-
-function renderMateriales() {
-  const tbody = document.getElementById('tbody-materiales');
-  if (!DATA.materiales.length) { tbody.innerHTML = emptyRow(5, 'Todavía no cargaste ningún material.'); return; }
-  tbody.innerHTML = DATA.materiales.map(m => `
-    <tr>
-      <td>${esc(m.ID_Material)}</td>
-      <td>${claseTitulo(m.ID_Clase)}</td>
-      <td>${esc(m.Nombre_PDF)}</td>
-      <td>${m.Link_PDF ? `<a href="${esc(m.Link_PDF)}" target="_blank">Ver PDF</a>` : '—'}</td>
-      <td class="actions">
-        <button class="btn btn-secondary btn-small" onclick="openForm('material', ${m._row})">Editar</button>
-        <button class="btn btn-danger" onclick="removeItem('Material', 'materiales', ${m._row})">Borrar</button>
-      </td>
-    </tr>`).join('');
+    </tr>`;
+  }).join('');
 }
 
 function renderAlumnos() {
@@ -447,16 +432,7 @@ const FORM_DEFS = {
     fields: [
       {name:'ID_Curso', label:'Curso', type:'select', source:'cursos', optionValue:'ID_Curso', optionLabel:'Nombre', required:true},
       {name:'Orden', label:'Orden dentro del curso', type:'number', required:true},
-      {name:'Titulo', label:'Título de la clase', type:'text', required:true},
-      {name:'VIDEO', label:'Video de YouTube (ID o link)', type:'youtube'}
-    ]
-  },
-  material: {
-    title: 'Material', addAction: 'addMaterial', updAction: 'updateMaterial', dataKey: 'materiales', idKey: 'ID_Material',
-    fields: [
-      {name:'ID_Clase', label:'Clase', type:'select', source:'clases', optionValue:'ID_Clase', optionLabel:'Titulo', required:true},
-      {name:'Nombre_PDF', label:'Nombre del archivo', type:'text', required:true},
-      {name:'Link_PDF', label:'Archivo PDF', type:'file'}
+      {name:'Titulo', label:'Título de la clase', type:'text', required:true}
     ]
   },
   alumno: {
@@ -549,6 +525,141 @@ function closeForm() {
   document.getElementById('form-panel').style.display = 'none';
   document.getElementById('overlay').style.display = 'none';
   editingRow = null;
+}
+
+/* ============================================================
+   CONTENIDOS DE UNA CLASE (videos y PDFs, cantidad libre)
+   ============================================================ */
+let contenidoClaseActual = null;
+let contenidoEditando = null; // _row del material en edición, o null = alta nueva
+
+function openContenidos(idClase) {
+  contenidoClaseActual = idClase;
+  contenidoEditando = null;
+  renderPanelContenidos();
+  document.getElementById('form-panel').style.display = 'block';
+  document.getElementById('overlay').style.display = 'block';
+}
+
+function renderPanelContenidos() {
+  const clase = DATA.clases.find(c => String(c.ID_Clase) === String(contenidoClaseActual));
+  const items = DATA.materiales
+    .filter(m => String(m.ID_Clase) === String(contenidoClaseActual))
+    .sort((a, b) => (Number(a.Orden) || 0) - (Number(b.Orden) || 0));
+
+  const existente = contenidoEditando ? items.find(m => m._row === contenidoEditando) : null;
+
+  let html = `<h3>Contenidos: ${esc(clase ? clase.Titulo : '')}</h3>`;
+
+  if (items.length) {
+    html += items.map(m => `
+      <div class="contenido-item">
+        <span class="icono">${m.Tipo === 'Video' ? '🎥' : '📄'}</span>
+        <div class="info"><strong>${esc(m.Nombre)}</strong><span>Orden ${esc(m.Orden)} · ${esc(m.Tipo)}</span></div>
+        <div class="acciones">
+          <button class="btn btn-secondary" onclick="editarContenido(${m._row})">Editar</button>
+          <button class="btn btn-danger" onclick="borrarContenido(${m._row})">Borrar</button>
+        </div>
+      </div>`).join('');
+  } else {
+    html += `<p style="color:var(--ink-soft); font-size:14px;">Todavía no hay contenidos en esta clase.</p>`;
+  }
+
+  html += `<div class="divider"></div>`;
+  html += `<h3 style="font-size:16px; margin-bottom:14px;">${existente ? 'Editar contenido' : '+ Agregar contenido'}</h3>`;
+  html += `
+    <div class="field">
+      <label>Tipo</label>
+      <select id="cf_Tipo" onchange="renderCampoLinkContenido()">
+        <option value="Video" ${existente && existente.Tipo === 'Video' ? 'selected' : ''}>Video (YouTube)</option>
+        <option value="PDF" ${existente && existente.Tipo === 'PDF' ? 'selected' : ''}>PDF</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>Nombre visible</label>
+      <input type="text" id="cf_Nombre" value="${esc(existente ? existente.Nombre : '')}" placeholder="Ej: Video de la clase 4/12">
+    </div>
+    <div class="field">
+      <label>Orden dentro de la clase</label>
+      <input type="number" id="cf_Orden" value="${esc(existente ? existente.Orden : (items.length + 1))}">
+    </div>
+    <div id="cf_link_wrap"></div>
+    <div class="form-actions">
+      <button class="btn btn-primary" onclick="guardarContenido()">${existente ? 'Guardar cambios' : 'Agregar'}</button>
+      <button class="btn btn-secondary" onclick="closeForm()">Cerrar</button>
+    </div>
+  `;
+
+  document.getElementById('form-panel').innerHTML = html;
+  renderCampoLinkContenido(existente ? existente.Link : '');
+}
+
+function renderCampoLinkContenido(valorExistente) {
+  const tipo = document.getElementById('cf_Tipo').value;
+  const wrap = document.getElementById('cf_link_wrap');
+  const val = valorExistente !== undefined ? valorExistente : '';
+
+  if (tipo === 'Video') {
+    wrap.innerHTML = `
+      <div class="field">
+        <label>Link de YouTube</label>
+        <input type="text" id="cf_Link" value="${esc(val)}" placeholder="Pegá el link o el ID del video">
+        <div class="field-hint">Podés pegar el link completo; se guarda el ID automáticamente.</div>
+      </div>`;
+  } else {
+    wrap.innerHTML = `
+      <div class="field">
+        <label>Archivo PDF</label>
+        <input type="hidden" id="cf_Link" value="${esc(val)}">
+        <input type="file" id="cf_Link_file" accept="application/pdf" onchange="handleUpload('cf_Link', this, false)">
+        <div class="upload-status" id="cf_Link_status">${val ? 'Archivo cargado.' : ''}</div>
+      </div>`;
+  }
+}
+
+function editarContenido(row) {
+  contenidoEditando = row;
+  renderPanelContenidos();
+}
+
+async function guardarContenido() {
+  const tipo = document.getElementById('cf_Tipo').value;
+  const nombre = document.getElementById('cf_Nombre').value.trim();
+  const orden = document.getElementById('cf_Orden').value;
+  let link = document.getElementById('cf_Link').value.trim();
+
+  if (!nombre) { showToast('Falta el nombre del contenido', true); return; }
+  if (!link) { showToast('Falta el ' + (tipo === 'Video' ? 'link de YouTube' : 'archivo PDF'), true); return; }
+  if (tipo === 'Video') link = extractYoutubeId(link);
+
+  const data = { ID_Clase: contenidoClaseActual, Tipo: tipo, Nombre: nombre, Orden: orden, Link: link };
+
+  try {
+    if (contenidoEditando) {
+      await api('updateMaterial', { row: contenidoEditando, data });
+      showToast('Contenido actualizado correctamente.');
+    } else {
+      await api('addMaterial', { data });
+      showToast('Contenido agregado correctamente.');
+    }
+    contenidoEditando = null;
+    await loadAll();
+    renderPanelContenidos();
+  } catch (e) {
+    showToast('Error al guardar: ' + e.message, true);
+  }
+}
+
+async function borrarContenido(row) {
+  if (!confirm('¿Seguro que querés borrar este contenido? Esta acción no se puede deshacer.')) return;
+  try {
+    await api('deleteMaterial', { row });
+    showToast('Contenido borrado correctamente.');
+    await loadAll();
+    renderPanelContenidos();
+  } catch (e) {
+    showToast('Error al borrar: ' + e.message, true);
+  }
 }
 
 /* Subida de archivos a Google Drive (a través del Apps Script del panel) */
