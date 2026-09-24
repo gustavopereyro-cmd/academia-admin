@@ -31,7 +31,6 @@
   }
   h1,h2,h3{font-family:'Cormorant Garamond',serif; font-weight:600; margin:0; color:var(--ink);}
 
-  /* ---------- LOGIN ---------- */
   #login-screen{
     position:fixed; inset:0;
     display:flex; align-items:center; justify-content:center;
@@ -46,15 +45,9 @@
     box-shadow:0 30px 60px -20px rgba(201,143,138,.25);
     text-align:center;
   }
-  .login-box img{
-    width:220px; max-width:100%;
-    margin:0 auto 22px; display:block;
-  }
+  .login-box img{width:220px; max-width:100%; margin:0 auto 22px; display:block;}
   .login-box h1{font-size:28px; margin-bottom:4px;}
-  .login-box p{
-    color:var(--ink-soft); font-size:11.5px; margin:0 0 28px;
-    text-transform:uppercase; letter-spacing:.24em;
-  }
+  .login-box p{color:var(--ink-soft); font-size:11.5px; margin:0 0 28px; text-transform:uppercase; letter-spacing:.24em;}
   .login-box .field{text-align:left;}
   .login-box input{
     width:100%; margin-bottom:12px; padding:13px 15px;
@@ -65,7 +58,6 @@
   .login-box input:focus{outline:none; border-color:var(--rose); background:#fff;}
   .login-error{color:var(--error); font-size:13px; min-height:18px; margin-bottom:6px;}
 
-  /* ---------- LAYOUT ---------- */
   #app{display:none; min-height:100vh;}
   .shell{display:flex; min-height:100vh;}
 
@@ -97,10 +89,7 @@
     transition:all .2s;
   }
   .nav-btn:hover{background:var(--rose-soft); color:var(--ink);}
-  .nav-btn.active{
-    background:var(--rose); color:#fff; font-weight:500;
-    letter-spacing:.08em;
-  }
+  .nav-btn.active{background:var(--rose); color:#fff; font-weight:500; letter-spacing:.08em;}
   .logout{
     font-family:'Jost',sans-serif; font-size:11.5px; font-weight:500;
     text-transform:uppercase; letter-spacing:.2em;
@@ -129,8 +118,8 @@
   .btn-danger{background:transparent; color:var(--error); border:1px solid var(--line); padding:7px 12px; font-size:11px; letter-spacing:.14em;}
   .btn-danger:hover{border-color:var(--error); background:#FBEFED;}
   .btn-small{padding:7px 13px; font-size:11px;}
+  .btn[disabled]{opacity:.5; cursor:wait;}
 
-  /* ---------- TABLA ---------- */
   table{
     width:100%; border-collapse:collapse; background:var(--card);
     border-radius:2px; overflow:hidden;
@@ -149,7 +138,16 @@
   .thumb{width:48px; height:48px; object-fit:cover; border-radius:2px; vertical-align:middle; border:1px solid var(--line);}
   .empty-row td{text-align:center; color:var(--ink-soft); padding:44px; font-style:italic;}
 
-  /* ---------- PANEL LATERAL ---------- */
+  .badge{
+    display:inline-block; font-size:10px; font-weight:500;
+    text-transform:uppercase; letter-spacing:.14em;
+    padding:4px 10px; border-radius:2px;
+  }
+  .badge.pendiente{background:#F7F2EE; color:#8A8280; border:1px solid #EDE4DE;}
+  .badge.emitido{background:#E8F0E5; color:#4F7942; border:1px solid #CFE0C7;}
+  .badge.enviado{background:#E5EDF0; color:#4A6E7A; border:1px solid #C7DCE3;}
+  .badge.error{background:#FBEFED; color:#B3452C; border:1px solid #F0D5D0;}
+
   .overlay{position:fixed; inset:0; background:rgba(74,68,68,.28); backdrop-filter:blur(2px); display:none; z-index:50;}
   .form-panel{
     position:fixed; top:0; right:0; height:100%; width:440px;
@@ -172,9 +170,7 @@
     transition:border-color .2s, background .2s;
   }
   textarea{resize:vertical; min-height:80px;}
-  input:focus, select:focus, textarea:focus{
-    outline:none; border-color:var(--rose); background:#fff;
-  }
+  input:focus, select:focus, textarea:focus{outline:none; border-color:var(--rose); background:#fff;}
   .form-actions{display:flex; gap:10px; margin-top:28px; padding-top:20px; border-top:1px solid var(--line);}
   .upload-row{display:flex; align-items:center; gap:12px;}
   .upload-preview{width:56px; height:56px; border-radius:2px; object-fit:cover; border:1px solid var(--line); display:none;}
@@ -194,7 +190,6 @@
   .toast.show{display:block; opacity:1; transform:translateX(-50%) translateY(0);}
   .toast.error{background:var(--error);}
 
-  /* ---------- CONTENIDOS ---------- */
   .contenido-item{
     display:flex; align-items:center; gap:14px;
     padding:14px 16px; border:1px solid var(--line);
@@ -205,10 +200,7 @@
   .contenido-item .icono{font-size:20px; line-height:1;}
   .contenido-item .info{flex:1; min-width:0;}
   .contenido-item .info strong{display:block; font-size:14px; font-weight:500;}
-  .contenido-item .info span{
-    font-size:11px; color:var(--ink-soft);
-    text-transform:uppercase; letter-spacing:.14em;
-  }
+  .contenido-item .info span{font-size:11px; color:var(--ink-soft); text-transform:uppercase; letter-spacing:.14em;}
   .contenido-item .acciones{display:flex; gap:6px;}
   .contenido-item button{padding:6px 11px; font-size:10.5px;}
   .divider{border-top:1px solid var(--line); margin:26px 0;}
@@ -255,11 +247,11 @@
       <button class="nav-btn" data-tab="clases" onclick="switchTab('clases')">Clases</button>
       <button class="nav-btn" data-tab="alumnos" onclick="switchTab('alumnos')">Alumnos</button>
       <button class="nav-btn" data-tab="inscripciones" onclick="switchTab('inscripciones')">Inscripciones</button>
+      <button class="nav-btn" data-tab="certificados" onclick="switchTab('certificados')">Certificados</button>
       <button class="logout" onclick="logout()">Cerrar sesión</button>
     </aside>
 
     <main>
-      <!-- ---- CURSOS ---- -->
       <section id="tab-cursos">
         <div class="section-head">
           <div><h1>Cursos</h1><p>Programas publicados en la academia.</p></div>
@@ -270,7 +262,6 @@
         </tr></thead><tbody id="tbody-cursos"></tbody></table>
       </section>
 
-      <!-- ---- CLASES ---- -->
       <section id="tab-clases" style="display:none">
         <div class="section-head">
           <div><h1>Clases</h1><p>Cada clase puede tener varios contenidos: videos y PDFs, en el orden que quieras.</p></div>
@@ -281,7 +272,6 @@
         </tr></thead><tbody id="tbody-clases"></tbody></table>
       </section>
 
-      <!-- ---- ALUMNOS ---- -->
       <section id="tab-alumnos" style="display:none">
         <div class="section-head">
           <div><h1>Alumnos</h1><p>Personas registradas en la academia.</p></div>
@@ -292,7 +282,6 @@
         </tr></thead><tbody id="tbody-alumnos"></tbody></table>
       </section>
 
-      <!-- ---- INSCRIPCIONES ---- -->
       <section id="tab-inscripciones" style="display:none">
         <div class="section-head">
           <div><h1>Inscripciones</h1><p>Qué alumno está anotado en qué curso.</p></div>
@@ -302,31 +291,32 @@
           <th>Alumno</th><th>Curso</th><th>Fecha de alta</th><th>Habilitado</th><th></th>
         </tr></thead><tbody id="tbody-inscripciones"></tbody></table>
       </section>
+
+      <!-- ---- CERTIFICADOS ---- -->
+      <section id="tab-certificados" style="display:none">
+        <div class="section-head">
+          <div><h1>Certificados</h1><p>Emisión de diplomas y certificados de seminario.</p></div>
+          <button class="btn btn-primary" id="btn-emitir" onclick="emitirPendientes()">Emitir pendientes</button>
+        </div>
+        <table><thead><tr>
+          <th>Certificado</th><th>Alumno</th><th>Curso</th><th>Tipo</th><th>Estado</th><th>PDF</th><th></th>
+        </tr></thead><tbody id="tbody-certificados"></tbody></table>
+      </section>
     </main>
   </div>
 </div>
 
-<!-- ===================== FORM PANEL (genérico) ===================== -->
 <div class="overlay" id="overlay" onclick="closeForm()"></div>
 <div class="form-panel" id="form-panel" style="display:none"></div>
 
 <div class="toast" id="toast"></div>
 
 <script>
-/* ============================================================
-   CONFIGURACIÓN
-   ============================================================ */
 const API_URL = 'https://script.google.com/macros/s/AKfycbzyGiSnozdfWIIVSy1PY25WqgGS1l8MSssblAv3diG31t_TOCeap_YO-jfeSg7TIY2Q/exec';
 
-/* ============================================================
-   ESTADO EN MEMORIA
-   ============================================================ */
-let DATA = { cursos: [], clases: [], materiales: [], alumnos: [], inscripciones: [] };
+let DATA = { cursos: [], clases: [], materiales: [], alumnos: [], inscripciones: [], egresados: [] };
 let currentTab = 'cursos';
 
-/* ============================================================
-   LLAMADAS A LA API
-   ============================================================ */
 async function api(action, payload) {
   const res = await fetch(API_URL, {
     method: 'POST',
@@ -338,9 +328,6 @@ async function api(action, payload) {
   return json;
 }
 
-/* ============================================================
-   LOGIN
-   ============================================================ */
 async function doLogin() {
   const usuario = document.getElementById('login-user').value.trim();
   const password = document.getElementById('login-pass').value;
@@ -371,17 +358,15 @@ if (sessionStorage.getItem('panel_logueado') === '1') {
   loadAll();
 }
 
-/* ============================================================
-   CARGA DE DATOS
-   ============================================================ */
 async function loadAll() {
   try {
-    const [cursos, clases, materiales, alumnos, inscripciones] = await Promise.all([
+    const [cursos, clases, materiales, alumnos, inscripciones, egresados] = await Promise.all([
       api('getCursos', {}), api('getClases', {}), api('getMateriales', {}),
-      api('getAlumnos', {}), api('getInscripciones', {})
+      api('getAlumnos', {}), api('getInscripciones', {}), api('getEgresados', {})
     ]);
     DATA.cursos = cursos; DATA.clases = clases; DATA.materiales = materiales;
     DATA.alumnos = alumnos; DATA.inscripciones = inscripciones;
+    DATA.egresados = egresados;
     renderAll();
   } catch (e) {
     showToast('Error cargando datos: ' + e.message, true);
@@ -389,20 +374,18 @@ async function loadAll() {
 }
 
 function renderAll() {
-  renderCursos(); renderClases(); renderAlumnos(); renderInscripciones();
+  renderCursos(); renderClases(); renderAlumnos(); renderInscripciones(); renderCertificados();
 }
 
 function switchTab(tab) {
   currentTab = tab;
   document.querySelectorAll('.nav-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
-  ['cursos','clases','alumnos','inscripciones'].forEach(t => {
-    document.getElementById('tab-' + t).style.display = (t === tab) ? 'block' : 'none';
+  ['cursos','clases','alumnos','inscripciones','certificados'].forEach(t => {
+    const el = document.getElementById('tab-' + t);
+    if (el) el.style.display = (t === tab) ? 'block' : 'none';
   });
 }
 
-/* ============================================================
-   RENDER DE TABLAS
-   ============================================================ */
 function renderCursos() {
   const tbody = document.getElementById('tbody-cursos');
   if (!DATA.cursos.length) { tbody.innerHTML = emptyRow(7, 'Todavía no cargaste ningún curso.'); return; }
@@ -474,18 +457,91 @@ function renderInscripciones() {
     </tr>`).join('');
 }
 
+function renderCertificados() {
+  const tbody = document.getElementById('tbody-certificados');
+  if (!tbody) return;
+  if (!DATA.egresados.length) {
+    tbody.innerHTML = emptyRow(7, 'Todavía no hay certificados cargados.');
+    return;
+  }
+  tbody.innerHTML = DATA.egresados.map(e => {
+    const estado = String(e.Estado || 'Pendiente').trim();
+    const claseBadge = estado.toLowerCase();
+    const pdf = e.URL_PDF
+      ? `<a href="${esc(e.URL_PDF)}" target="_blank" rel="noopener" class="btn btn-secondary btn-small">Ver PDF</a>`
+      : '—';
+    return `
+      <tr>
+        <td>${esc(e.Certificado)}</td>
+        <td>${esc(e.Nombre_Alumno)}</td>
+        <td>${esc(e.Curso)}</td>
+        <td>${esc(e.Tipo)}</td>
+        <td><span class="badge ${claseBadge}">${esc(estado)}</span></td>
+        <td>${pdf}</td>
+        <td class="actions">
+          <button class="btn btn-secondary btn-small" onclick="enviarPorMail(${e._row})">Enviar</button>
+          <button class="btn btn-secondary btn-small" onclick="openForm('egresado', ${e._row})">Editar</button>
+          <button class="btn btn-danger" onclick="removeItem('Egresado', 'egresados', ${e._row})">Borrar</button>
+        </td>
+      </tr>`;
+  }).join('');
+}
+
+async function emitirPendientes() {
+  const btn = document.getElementById('btn-emitir');
+  if (!confirm('¿Emitir todos los certificados pendientes? Esto puede tardar unos segundos.')) return;
+  if (btn) { btn.disabled = true; btn.textContent = 'Emitiendo...'; }
+  try {
+    const res = await api('emitirPendientes', {});
+    if (res.error) throw new Error(res.error);
+    const msg = `Emitidos: ${res.emitidos}. Errores: ${res.errores}.`;
+    if (res.errores > 0) {
+      const fallados = (res.detalle || []).filter(d => !d.ok).map(d => `${d.cert} - ${d.nombre}: ${d.error}`).join('\n');
+      console.warn('Errores:\n' + fallados);
+    }
+    showToast(msg, res.errores > 0);
+    await loadAll();
+  } catch (e) {
+    showToast('Error al emitir: ' + e.message, true);
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = 'Emitir pendientes'; }
+  }
+}
+
+async function enviarPorMail(row) {
+  const eg = DATA.egresados.find(x => x._row === row);
+  if (!eg) return;
+  if (!eg.URL_PDF) {
+    showToast('Primero tenés que emitir el certificado.', true);
+    return;
+  }
+  try {
+    const res = await api('getEmailEgresado', { dni: eg.DNI });
+    const email = res.email || '';
+    if (!email) {
+      showToast('No se encontró un email para ese DNI en la hoja Alumnos.', true);
+      return;
+    }
+    const asunto = encodeURIComponent('Tu certificado - Academia Mariana Barrera');
+    const cuerpo = encodeURIComponent(
+      `Hola ${eg.Nombre_Alumno},\n\nTe enviamos el certificado correspondiente a "${eg.Curso}".\n\nPodés verlo y descargarlo acá:\n${eg.URL_PDF}\n\nCualquier consulta, quedamos a disposición.\n\nAcademia Profesional Mariana Barrera`
+    );
+    const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(email)}&su=${asunto}&body=${cuerpo}`;
+    window.open(gmailUrl, '_blank');
+  } catch (e) {
+    showToast('Error al obtener el email: ' + e.message, true);
+  }
+}
+
 function emptyRow(colspan, msg) { return `<tr class="empty-row"><td colspan="${colspan}">${msg}</td></tr>`; }
 function esc(v) { return (v === undefined || v === null) ? '' : String(v).replace(/[&<>"]/g, s => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[s])); }
 function cursoNombre(id) { const c = DATA.cursos.find(x => x.ID_Curso === id); return c ? esc(c.Nombre) : esc(id); }
 function claseTitulo(id) { const c = DATA.clases.find(x => x.ID_Clase === id); return c ? esc(c.Titulo) : esc(id); }
 function alumnoNombre(id) { const a = DATA.alumnos.find(x => String(x.ID_Alumno) === String(id)); return a ? esc(a.Nombre) : esc(id); }
 
-/* ============================================================
-   BORRAR
-   ============================================================ */
 async function removeItem(label, key, row) {
   if (!confirm(`¿Seguro que querés borrar este ${label.toLowerCase()}? Esta acción no se puede deshacer.`)) return;
-  const actionMap = { cursos:'deleteCurso', clases:'deleteClase', materiales:'deleteMaterial', alumnos:'deleteAlumno', inscripciones:'deleteInscripcion' };
+  const actionMap = { cursos:'deleteCurso', clases:'deleteClase', materiales:'deleteMaterial', alumnos:'deleteAlumno', inscripciones:'deleteInscripcion', egresados:'deleteEgresado' };
   try {
     await api(actionMap[key], { row });
     showToast(label + ' borrado correctamente.');
@@ -495,9 +551,6 @@ async function removeItem(label, key, row) {
   }
 }
 
-/* ============================================================
-   FORMULARIOS
-   ============================================================ */
 const FORM_DEFS = {
   curso: {
     title: 'Curso', addAction: 'addCurso', updAction: 'updateCurso', dataKey: 'cursos', idKey: 'ID_Curso',
@@ -542,6 +595,19 @@ const FORM_DEFS = {
       {name:'ID_Curso', label:'Curso', type:'select', source:'cursos', optionValue:'ID_Curso', optionLabel:'Nombre', required:true},
       {name:'Fecha_Alta', label:'Fecha de alta', type:'date'},
       {name:'Habilitado', label:'Habilitado', type:'select-fixed', options:['Si','No'], required:true}
+    ]
+  },
+  egresado: {
+    title: 'Egresado', addAction: 'addEgresado', updAction: 'updateEgresado', dataKey: 'egresados', idKey: null,
+    fields: [
+      {name:'Fecha', label:'Fecha (ej: Enero 2026)', type:'text', required:true},
+      {name:'Nombre_Alumno', label:'Nombre del alumno', type:'text', required:true},
+      {name:'Curso', label:'Nombre del curso (tal cual va en el diploma)', type:'text', required:true},
+      {name:'DNI', label:'DNI', type:'text', required:true},
+      {name:'Acta', label:'Número de acta', type:'text', required:true},
+      {name:'Certificado', label:'Número de certificado (ej: CERT-2026-0001)', type:'text', required:true},
+      {name:'Tipo', label:'Tipo', type:'select-fixed', options:['Diploma','Seminario'], required:true},
+      {name:'Estado', label:'Estado', type:'select-fixed', options:['Pendiente','Emitido','Enviado'], required:true}
     ]
   }
 };
@@ -614,9 +680,6 @@ function closeForm() {
   editingRow = null;
 }
 
-/* ============================================================
-   CONTENIDOS DE UNA CLASE
-   ============================================================ */
 let contenidoClaseActual = null;
 let contenidoEditando = null;
 
@@ -749,7 +812,6 @@ async function borrarContenido(row) {
   }
 }
 
-/* Subida de archivos a Google Drive */
 function fileToBase64(file) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -820,9 +882,6 @@ async function submitForm(kind) {
   }
 }
 
-/* ============================================================
-   TOAST
-   ============================================================ */
 let toastTimer;
 function showToast(msg, isError) {
   const el = document.getElementById('toast');
