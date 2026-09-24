@@ -292,11 +292,14 @@
         </tr></thead><tbody id="tbody-inscripciones"></tbody></table>
       </section>
 
-      <!-- ---- CERTIFICADOS ---- -->
+           <!-- ---- CERTIFICADOS ---- -->
       <section id="tab-certificados" style="display:none">
         <div class="section-head">
           <div><h1>Certificados</h1><p>Emisión de diplomas y certificados de seminario.</p></div>
-          <button class="btn btn-primary" id="btn-emitir" onclick="emitirPendientes()">Emitir pendientes</button>
+          <div style="display:flex; gap:10px;">
+            <button class="btn btn-secondary" onclick="openForm('egresado')">+ Nuevo egresado</button>
+            <button class="btn btn-primary" id="btn-emitir" onclick="emitirPendientes()">Emitir pendientes</button>
+          </div>
         </div>
         <table><thead><tr>
           <th>Certificado</th><th>Alumno</th><th>Curso</th><th>Tipo</th><th>Estado</th><th>PDF</th><th></th>
