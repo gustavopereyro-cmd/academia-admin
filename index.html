@@ -117,9 +117,11 @@
   .btn-secondary:hover{border-color:var(--rose); background:var(--rose-soft);}
   .btn-danger{background:transparent; color:var(--error); border:1px solid var(--line); padding:7px 12px; font-size:11px; letter-spacing:.14em;}
   .btn-danger:hover{border-color:var(--error); background:#FBEFED;}
+  .btn-success{background:transparent; color:#4F7942; border:1px solid #CFE0C7; padding:7px 12px; font-size:11px; letter-spacing:.14em; text-decoration:none; display:inline-block;}
+  .btn-success:hover{background:#E8F0E5; border-color:#4F7942; color:#4F7942;}
   .btn-small{padding:7px 13px; font-size:11px;}
   .btn[disabled]{opacity:.5; cursor:wait;}
-
+  
   table{
     width:100%; border-collapse:collapse; background:var(--card);
     border-radius:2px; overflow:hidden;
@@ -375,7 +377,191 @@ async function loadAll() {
     showToast('Error cargando datos: ' + e.message, true);
   }
 }
+/* ============================================================
+   FORMULARIO ESPECIAL PARA EGRESADOS (con autocompletado)
+   ============================================================ */
 
+async function openFormEgresado() {
+  // 1. Cargar el próximo acta y certificado
+  let proximoActa = { acta: '', certificado: '' };
+  try {
+    proximoActa = await api('getProximoActa', {});
+  } catch (e) {
+    showToast('No se pudo obtener el próximo número de acta: ' + e.message, true);
+    return;
+  }
+
+  // 2. Calcular fecha actual en formato "Mes Año"
+  const meses = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+  const hoy = new Date();
+  const fechaActual = meses[hoy.getMonth()] + ' ' + hoy.getFullYear();
+
+  // 3. Armar HTML del formulario
+  const html = `
+    <h3>Nuevo egresado</h3>
+    <div id="form-fields">
+      <div class="field">
+        <label>Alumno</label>
+        <select id="ef_Alumno" onchange="onAlumnoEgresadoChange()">
+          <option value="">Seleccioná un alumno...</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>DNI</label>
+        <input type="text" id="ef_DNI" readonly>
+      </div>
+      <div class="field">
+        <label>Curso</label>
+        <select id="ef_Curso" disabled>
+          <option value="">Primero elegí un alumno</option>
+        </select>
+        <div class="field-hint" id="ef_CursoHint"></div>
+      </div>
+      <div class="field">
+        <label>Tipo</label>
+        <select id="ef_Tipo">
+          <option value="Diploma">Diploma</option>
+          <option value="Seminario">Seminario</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Fecha (mes y año)</label>
+        <input type="text" id="ef_Fecha" value="${fechaActual}">
+        <div class="field-hint">Se autogenera con el mes actual. Podés cambiarla si es retroactiva.</div>
+      </div>
+      <div class="field">
+        <label>Acta</label>
+        <input type="text" id="ef_Acta" value="${proximoActa.acta}" readonly>
+      </div>
+      <div class="field">
+        <label>Certificado</label>
+        <input type="text" id="ef_Certificado" value="${proximoActa.certificado}" readonly>
+      </div>
+      <div class="field">
+        <label>Estado</label>
+        <select id="ef_Estado">
+          <option value="Pendiente" selected>Pendiente</option>
+          <option value="Emitido">Emitido</option>
+          <option value="Enviado">Enviado</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-actions">
+      <button class="btn btn-primary" onclick="submitEgresado()">Guardar</button>
+      <button class="btn btn-secondary" onclick="closeForm()">Cancelar</button>
+    </div>
+  `;
+
+  document.getElementById('form-panel').innerHTML = html;
+  document.getElementById('form-panel').style.display = 'block';
+  document.getElementById('overlay').style.display = 'block';
+
+  // 4. Poblar el desplegable de alumnos
+  const selectAlumno = document.getElementById('ef_Alumno');
+  const alumnos = DATA.alumnosConCursos.slice().sort((a, b) =>
+    String(a.Nombre || '').localeCompare(String(b.Nombre || ''), 'es')
+  );
+
+  alumnos.forEach(a => {
+    const opt = document.createElement('option');
+    opt.value = a.ID_Alumno;
+    opt.textContent = a.Nombre + ' (' + a.ID_Alumno + ')';
+    selectAlumno.appendChild(opt);
+  });
+}
+
+/**
+ * Cuando el usuario cambia el alumno:
+ * - Se autocompleta el DNI.
+ * - Se recargan los cursos disponibles (solo los habilitados para ese alumno).
+ */
+function onAlumnoEgresadoChange() {
+  const dni = document.getElementById('ef_Alumno').value;
+  const inputDNI = document.getElementById('ef_DNI');
+  const selectCurso = document.getElementById('ef_Curso');
+  const hint = document.getElementById('ef_CursoHint');
+
+  // Limpiar
+  inputDNI.value = '';
+  selectCurso.innerHTML = '';
+  hint.textContent = '';
+
+  if (!dni) {
+    selectCurso.disabled = true;
+    selectCurso.innerHTML = '<option value="">Primero elegí un alumno</option>';
+    return;
+  }
+
+  // Autocompletar DNI
+  inputDNI.value = dni;
+
+  // Buscar el alumno en DATA.alumnosConCursos
+  const alumno = DATA.alumnosConCursos.find(a => String(a.ID_Alumno) === String(dni));
+  if (!alumno || !alumno.Cursos || alumno.Cursos.length === 0) {
+    selectCurso.disabled = true;
+    selectCurso.innerHTML = '<option value="">Sin cursos habilitados</option>';
+    hint.textContent = 'Este alumno no tiene cursos habilitados. Verificá las inscripciones.';
+    hint.style.color = 'var(--error)';
+    return;
+  }
+
+  // Poblar cursos
+  selectCurso.disabled = false;
+  selectCurso.innerHTML = '<option value="">Seleccioná un curso...</option>';
+  alumno.Cursos.forEach(c => {
+    const opt = document.createElement('option');
+    opt.value = c.Nombre; // guardamos el NOMBRE (es lo que va al diploma)
+    opt.textContent = c.Nombre;
+    selectCurso.appendChild(opt);
+  });
+  hint.textContent = alumno.Cursos.length + ' curso(s) disponible(s) para este alumno.';
+  hint.style.color = 'var(--ink-soft)';
+}
+
+/**
+ * Envía el formulario de egresado.
+ */
+async function submitEgresado() {
+  const dni = document.getElementById('ef_Alumno').value;
+  const curso = document.getElementById('ef_Curso').value;
+  const tipo = document.getElementById('ef_Tipo').value;
+  const fecha = document.getElementById('ef_Fecha').value.trim();
+  const acta = document.getElementById('ef_Acta').value.trim();
+  const certificado = document.getElementById('ef_Certificado').value.trim();
+  const estado = document.getElementById('ef_Estado').value;
+
+  // Validaciones
+  if (!dni) { showToast('Falta elegir un alumno.', true); return; }
+  if (!curso) { showToast('Falta elegir un curso.', true); return; }
+  if (!fecha) { showToast('Falta la fecha.', true); return; }
+  if (!acta) { showToast('Falta el acta.', true); return; }
+  if (!certificado) { showToast('Falta el certificado.', true); return; }
+
+  // Buscar el nombre del alumno para guardarlo en la hoja Egresados
+  const alumno = DATA.alumnosConCursos.find(a => String(a.ID_Alumno) === String(dni));
+  const nombreAlumno = alumno ? alumno.Nombre : '';
+
+  const data = {
+    Fecha: fecha,
+    Nombre_Alumno: nombreAlumno,
+    Curso: curso,
+    DNI: dni,
+    Acta: acta,
+    Certificado: certificado,
+    Tipo: tipo,
+    Estado: estado
+  };
+
+  try {
+    const res = await api('addEgresado', { data });
+    if (res.error) throw new Error(res.error);
+    showToast('Egresado agregado correctamente.');
+    closeForm();
+    await loadAll();
+  } catch (e) {
+    showToast('Error al guardar: ' + e.message, true);
+  }
+}
 function renderAll() {
   renderCursos(); renderClases(); renderAlumnos(); renderInscripciones(); renderCertificados();
 }
@@ -471,7 +657,7 @@ function renderCertificados() {
     const estado = String(e.Estado || 'Pendiente').trim();
     const claseBadge = estado.toLowerCase();
     const pdf = e.URL_PDF
-      ? `<a href="${esc(e.URL_PDF)}" target="_blank" rel="noopener" class="btn btn-secondary btn-small">Ver PDF</a>`
+      ? `<a href="${esc(e.URL_PDF)}" target="_blank" rel="noopener" class="btn btn-success">Ver PDF</a>`
       : '—';
     return `
       <tr>
@@ -597,20 +783,7 @@ const FORM_DEFS = {
       {name:'ID_Alumno', label:'Alumno', type:'select', source:'alumnos', optionValue:'ID_Alumno', optionLabel:'Nombre', required:true},
       {name:'ID_Curso', label:'Curso', type:'select', source:'cursos', optionValue:'ID_Curso', optionLabel:'Nombre', required:true},
       {name:'Fecha_Alta', label:'Fecha de alta', type:'date'},
-      {name:'Habilitado', label:'Habilitado', type:'select-fixed', options:['Si','No'], required:true}
-    ]
-  },
-  egresado: {
-    title: 'Egresado', addAction: 'addEgresado', updAction: 'updateEgresado', dataKey: 'egresados', idKey: null,
-    fields: [
-      {name:'Fecha', label:'Fecha (ej: Enero 2026)', type:'text', required:true},
-      {name:'Nombre_Alumno', label:'Nombre del alumno', type:'text', required:true},
-      {name:'Curso', label:'Nombre del curso (tal cual va en el diploma)', type:'text', required:true},
-      {name:'DNI', label:'DNI', type:'text', required:true},
-      {name:'Acta', label:'Número de acta', type:'text', required:true},
-      {name:'Certificado', label:'Número de certificado (ej: CERT-2026-0001)', type:'text', required:true},
-      {name:'Tipo', label:'Tipo', type:'select-fixed', options:['Diploma','Seminario'], required:true},
-      {name:'Estado', label:'Estado', type:'select-fixed', options:['Pendiente','Emitido','Enviado'], required:true}
+            {name:'Habilitado', label:'Habilitado', type:'select-fixed', options:['Si','No'], required:true}
     ]
   }
 };
