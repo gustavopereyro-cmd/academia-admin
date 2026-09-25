@@ -1068,6 +1068,177 @@ function showToast(msg, isError) {
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => { el.className = 'toast' + (isError ? ' error' : ''); }, 3500);
 }
+  /* ============================================================
+   FORMULARIO ESPECIAL PARA EGRESADOS (con autocompletado)
+   ============================================================ */
+
+async function openFormEgresado() {
+  // 1. Cargar el próximo acta y certificado
+  let proximoActa = { acta: '', certificado: '' };
+  try {
+    proximoActa = await api('getProximoActa', {});
+  } catch (e) {
+    showToast('No se pudo obtener el próximo número de acta: ' + e.message, true);
+    return;
+  }
+
+  // 2. Calcular fecha actual en formato "Mes Año"
+  const meses = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+  const hoy = new Date();
+  const fechaActual = meses[hoy.getMonth()] + ' ' + hoy.getFullYear();
+
+  // 3. Armar HTML del formulario
+  const html = `
+    <h3>Nuevo egresado</h3>
+    <div id="form-fields">
+      <div class="field">
+        <label>Alumno</label>
+        <select id="ef_Alumno" onchange="onAlumnoEgresadoChange()">
+          <option value="">Seleccioná un alumno...</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>DNI</label>
+        <input type="text" id="ef_DNI" readonly>
+      </div>
+      <div class="field">
+        <label>Curso</label>
+        <select id="ef_Curso" disabled>
+          <option value="">Primero elegí un alumno</option>
+        </select>
+        <div class="field-hint" id="ef_CursoHint"></div>
+      </div>
+      <div class="field">
+        <label>Tipo</label>
+        <select id="ef_Tipo">
+          <option value="Diploma">Diploma</option>
+          <option value="Seminario">Seminario</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Fecha (mes y año)</label>
+        <input type="text" id="ef_Fecha" value="${fechaActual}">
+        <div class="field-hint">Se autogenera con el mes actual. Podés cambiarla si es retroactiva.</div>
+      </div>
+      <div class="field">
+        <label>Acta</label>
+        <input type="text" id="ef_Acta" value="${proximoActa.acta}" readonly>
+      </div>
+      <div class="field">
+        <label>Certificado</label>
+        <input type="text" id="ef_Certificado" value="${proximoActa.certificado}" readonly>
+      </div>
+      <div class="field">
+        <label>Estado</label>
+        <select id="ef_Estado">
+          <option value="Pendiente" selected>Pendiente</option>
+          <option value="Emitido">Emitido</option>
+          <option value="Enviado">Enviado</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-actions">
+      <button class="btn btn-primary" onclick="submitEgresado()">Guardar</button>
+      <button class="btn btn-secondary" onclick="closeForm()">Cancelar</button>
+    </div>
+  `;
+
+  document.getElementById('form-panel').innerHTML = html;
+  document.getElementById('form-panel').style.display = 'block';
+  document.getElementById('overlay').style.display = 'block';
+
+  // 4. Poblar el desplegable de alumnos
+  const selectAlumno = document.getElementById('ef_Alumno');
+  const alumnos = DATA.alumnosConCursos.slice().sort((a, b) =>
+    String(a.Nombre || '').localeCompare(String(b.Nombre || ''), 'es')
+  );
+
+  alumnos.forEach(a => {
+    const opt = document.createElement('option');
+    opt.value = a.ID_Alumno;
+    opt.textContent = a.Nombre + ' (' + a.ID_Alumno + ')';
+    selectAlumno.appendChild(opt);
+  });
+}
+
+function onAlumnoEgresadoChange() {
+  const dni = document.getElementById('ef_Alumno').value;
+  const inputDNI = document.getElementById('ef_DNI');
+  const selectCurso = document.getElementById('ef_Curso');
+  const hint = document.getElementById('ef_CursoHint');
+
+  inputDNI.value = '';
+  selectCurso.innerHTML = '';
+  hint.textContent = '';
+
+  if (!dni) {
+    selectCurso.disabled = true;
+    selectCurso.innerHTML = '<option value="">Primero elegí un alumno</option>';
+    return;
+  }
+
+  inputDNI.value = dni;
+
+  const alumno = DATA.alumnosConCursos.find(a => String(a.ID_Alumno) === String(dni));
+  if (!alumno || !alumno.Cursos || alumno.Cursos.length === 0) {
+    selectCurso.disabled = true;
+    selectCurso.innerHTML = '<option value="">Sin cursos habilitados</option>';
+    hint.textContent = 'Este alumno no tiene cursos habilitados. Verificá las inscripciones.';
+    hint.style.color = 'var(--error)';
+    return;
+  }
+
+  selectCurso.disabled = false;
+  selectCurso.innerHTML = '<option value="">Seleccioná un curso...</option>';
+  alumno.Cursos.forEach(c => {
+    const opt = document.createElement('option');
+    opt.value = c.Nombre;
+    opt.textContent = c.Nombre;
+    selectCurso.appendChild(opt);
+  });
+  hint.textContent = alumno.Cursos.length + ' curso(s) disponible(s) para este alumno.';
+  hint.style.color = 'var(--ink-soft)';
+}
+
+async function submitEgresado() {
+  const dni = document.getElementById('ef_Alumno').value;
+  const curso = document.getElementById('ef_Curso').value;
+  const tipo = document.getElementById('ef_Tipo').value;
+  const fecha = document.getElementById('ef_Fecha').value.trim();
+  const acta = document.getElementById('ef_Acta').value.trim();
+  const certificado = document.getElementById('ef_Certificado').value.trim();
+  const estado = document.getElementById('ef_Estado').value;
+
+  if (!dni) { showToast('Falta elegir un alumno.', true); return; }
+  if (!curso) { showToast('Falta elegir un curso.', true); return; }
+  if (!fecha) { showToast('Falta la fecha.', true); return; }
+  if (!acta) { showToast('Falta el acta.', true); return; }
+  if (!certificado) { showToast('Falta el certificado.', true); return; }
+
+  const alumno = DATA.alumnosConCursos.find(a => String(a.ID_Alumno) === String(dni));
+  const nombreAlumno = alumno ? alumno.Nombre : '';
+
+  const data = {
+    Fecha: fecha,
+    Nombre_Alumno: nombreAlumno,
+    Curso: curso,
+    DNI: dni,
+    Acta: acta,
+    Certificado: certificado,
+    Tipo: tipo,
+    Estado: estado
+  };
+
+  try {
+    const res = await api('addEgresado', { data });
+    if (res.error) throw new Error(res.error);
+    showToast('Egresado agregado correctamente.');
+    closeForm();
+    await loadAll();
+  } catch (e) {
+    showToast('Error al guardar: ' + e.message, true);
+  }
+}
 </script>
 </body>
 </html>
