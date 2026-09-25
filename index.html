@@ -299,8 +299,8 @@
         <div class="section-head">
           <div><h1>Certificados</h1><p>Emisión de diplomas y certificados de seminario.</p></div>
           <div style="display:flex; gap:10px;">
-            <button class="btn btn-secondary" onclick="openForm('egresado')">+ Nuevo egresado</button>
-            <button class="btn btn-primary" id="btn-emitir" onclick="emitirPendientes()">Emitir pendientes</button>
+           <button class="btn btn-secondary" onclick="openFormEgresado()">+ Nuevo egresado</button>
+           <button class="btn btn-primary" id="btn-emitir" onclick="emitirPendientes()">Emitir pendientes</button>
           </div>
         </div>
         <table><thead><tr>
@@ -319,7 +319,7 @@
 <script>
 const API_URL = 'https://script.google.com/macros/s/AKfycbzyGiSnozdfWIIVSy1PY25WqgGS1l8MSssblAv3diG31t_TOCeap_YO-jfeSg7TIY2Q/exec';
 
-let DATA = { cursos: [], clases: [], materiales: [], alumnos: [], inscripciones: [], egresados: [] };
+let DATA = { cursos: [], clases: [], materiales: [], alumnos: [], inscripciones: [], egresados: [], alumnosConCursos: [] };
 let currentTab = 'cursos';
 
 async function api(action, payload) {
@@ -365,13 +365,15 @@ if (sessionStorage.getItem('panel_logueado') === '1') {
 
 async function loadAll() {
   try {
-    const [cursos, clases, materiales, alumnos, inscripciones, egresados] = await Promise.all([
+    const [cursos, clases, materiales, alumnos, inscripciones, egresados, alumnosConCursos] = await Promise.all([
       api('getCursos', {}), api('getClases', {}), api('getMateriales', {}),
-      api('getAlumnos', {}), api('getInscripciones', {}), api('getEgresados', {})
+      api('getAlumnos', {}), api('getInscripciones', {}), api('getEgresados', {}),
+      api('getAlumnosConCursos', {})
     ]);
     DATA.cursos = cursos; DATA.clases = clases; DATA.materiales = materiales;
     DATA.alumnos = alumnos; DATA.inscripciones = inscripciones;
     DATA.egresados = egresados;
+    DATA.alumnosConCursos = alumnosConCursos;
     renderAll();
   } catch (e) {
     showToast('Error cargando datos: ' + e.message, true);
