@@ -149,6 +149,7 @@
   .badge.emitido{background:#E8F0E5; color:#4F7942; border:1px solid #CFE0C7;}
   .badge.enviado{background:#E5EDF0; color:#4A6E7A; border:1px solid #C7DCE3;}
   .badge.error{background:#FBEFED; color:#B3452C; border:1px solid #F0D5D0;}
+  .badge.cerrado{background:#F7F2EE; color:#8A8280; border:1px solid #CFC5BE;}
 
   .overlay{position:fixed; inset:0; background:rgba(74,68,68,.28); backdrop-filter:blur(2px); display:none; z-index:50;}
   .form-panel{
@@ -260,7 +261,7 @@
           <button class="btn btn-primary" onclick="openForm('curso')">+ Nuevo curso</button>
         </div>
         <table><thead><tr>
-          <th>Imagen</th><th>ID</th><th>Nombre</th><th>Duración</th><th>Precio ARS</th><th>Precio USD</th><th></th>
+          <th>Imagen</th><th>ID</th><th>Nombre</th><th>Duración</th><th>Precio ARS</th><th>Precio USD</th><th>Estado</th><th></th>
         </tr></thead><tbody id="tbody-cursos"></tbody></table>
       </section>
 
@@ -294,7 +295,6 @@
         </tr></thead><tbody id="tbody-inscripciones"></tbody></table>
       </section>
 
-           <!-- ---- CERTIFICADOS ---- -->
       <section id="tab-certificados" style="display:none">
         <div class="section-head">
           <div><h1>Certificados</h1><p>Emisión de diplomas y certificados de seminario.</p></div>
@@ -379,191 +379,38 @@ async function loadAll() {
     showToast('Error cargando datos: ' + e.message, true);
   }
 }
+
 /* ============================================================
-   FORMULARIO ESPECIAL PARA EGRESADOS (con autocompletado)
+   HELPERS
    ============================================================ */
 
-async function openFormEgresado() {
-  // 1. Cargar el próximo acta y certificado
-  let proximoActa = { acta: '', certificado: '' };
-  try {
-    proximoActa = await api('getProximoActa', {});
-  } catch (e) {
-    showToast('No se pudo obtener el próximo número de acta: ' + e.message, true);
-    return;
-  }
+function formatearPrecio(valor) {
+  if (valor === '' || valor === null || valor === undefined) return '';
+  const num = Number(valor);
+  if (isNaN(num)) return String(valor);
+  return num.toLocaleString('es-AR');
+}
 
-  // 2. Calcular fecha actual en formato "Mes Año"
-  const meses = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+function cursoCerrado(curso) {
+  const f = curso.Fecha_Fin_Publicacion;
+  if (!f) return false;
+  const fecha = new Date(f);
+  if (isNaN(fecha.getTime())) return false;
   const hoy = new Date();
-  const fechaActual = meses[hoy.getMonth()] + ' ' + hoy.getFullYear();
-
-  // 3. Armar HTML del formulario
-  const html = `
-    <h3>Nuevo egresado</h3>
-    <div id="form-fields">
-      <div class="field">
-        <label>Alumno</label>
-        <select id="ef_Alumno" onchange="onAlumnoEgresadoChange()">
-          <option value="">Seleccioná un alumno...</option>
-        </select>
-      </div>
-      <div class="field">
-        <label>DNI</label>
-        <input type="text" id="ef_DNI" readonly>
-      </div>
-      <div class="field">
-        <label>Curso</label>
-        <select id="ef_Curso" disabled>
-          <option value="">Primero elegí un alumno</option>
-        </select>
-        <div class="field-hint" id="ef_CursoHint"></div>
-      </div>
-      <div class="field">
-        <label>Tipo</label>
-        <select id="ef_Tipo">
-          <option value="Diploma">Diploma</option>
-          <option value="Seminario">Seminario</option>
-        </select>
-      </div>
-      <div class="field">
-        <label>Fecha (mes y año)</label>
-        <input type="text" id="ef_Fecha" value="${fechaActual}">
-        <div class="field-hint">Se autogenera con el mes actual. Podés cambiarla si es retroactiva.</div>
-      </div>
-      <div class="field">
-        <label>Acta</label>
-        <input type="text" id="ef_Acta" value="${proximoActa.acta}" readonly>
-      </div>
-      <div class="field">
-        <label>Certificado</label>
-        <input type="text" id="ef_Certificado" value="${proximoActa.certificado}" readonly>
-      </div>
-      <div class="field">
-        <label>Estado</label>
-        <select id="ef_Estado">
-          <option value="Pendiente" selected>Pendiente</option>
-          <option value="Emitido">Emitido</option>
-          <option value="Enviado">Enviado</option>
-        </select>
-      </div>
-    </div>
-    <div class="form-actions">
-      <button class="btn btn-primary" onclick="submitEgresado()">Guardar</button>
-      <button class="btn btn-secondary" onclick="closeForm()">Cancelar</button>
-    </div>
-  `;
-
-  document.getElementById('form-panel').innerHTML = html;
-  document.getElementById('form-panel').style.display = 'block';
-  document.getElementById('overlay').style.display = 'block';
-
-  // 4. Poblar el desplegable de alumnos
-  const selectAlumno = document.getElementById('ef_Alumno');
-  const alumnos = DATA.alumnosConCursos.slice().sort((a, b) =>
-    String(a.Nombre || '').localeCompare(String(b.Nombre || ''), 'es')
-  );
-
-  alumnos.forEach(a => {
-    const opt = document.createElement('option');
-    opt.value = a.ID_Alumno;
-    opt.textContent = a.Nombre + ' (' + a.ID_Alumno + ')';
-    selectAlumno.appendChild(opt);
-  });
+  hoy.setHours(0,0,0,0);
+  return fecha < hoy;
 }
 
-/**
- * Cuando el usuario cambia el alumno:
- * - Se autocompleta el DNI.
- * - Se recargan los cursos disponibles (solo los habilitados para ese alumno).
- */
-function onAlumnoEgresadoChange() {
-  const dni = document.getElementById('ef_Alumno').value;
-  const inputDNI = document.getElementById('ef_DNI');
-  const selectCurso = document.getElementById('ef_Curso');
-  const hint = document.getElementById('ef_CursoHint');
+function emptyRow(colspan, msg) { return `<tr class="empty-row"><td colspan="${colspan}">${msg}</td></tr>`; }
+function esc(v) { return (v === undefined || v === null) ? '' : String(v).replace(/[&<>"]/g, s => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[s])); }
+function cursoNombre(id) { const c = DATA.cursos.find(x => x.ID_Curso === id); return c ? esc(c.Nombre) : esc(id); }
+function claseTitulo(id) { const c = DATA.clases.find(x => x.ID_Clase === id); return c ? esc(c.Titulo) : esc(id); }
+function alumnoNombre(id) { const a = DATA.alumnos.find(x => String(x.ID_Alumno) === String(id)); return a ? esc(a.Nombre) : esc(id); }
 
-  // Limpiar
-  inputDNI.value = '';
-  selectCurso.innerHTML = '';
-  hint.textContent = '';
+/* ============================================================
+   RENDER
+   ============================================================ */
 
-  if (!dni) {
-    selectCurso.disabled = true;
-    selectCurso.innerHTML = '<option value="">Primero elegí un alumno</option>';
-    return;
-  }
-
-  // Autocompletar DNI
-  inputDNI.value = dni;
-
-  // Buscar el alumno en DATA.alumnosConCursos
-  const alumno = DATA.alumnosConCursos.find(a => String(a.ID_Alumno) === String(dni));
-  if (!alumno || !alumno.Cursos || alumno.Cursos.length === 0) {
-    selectCurso.disabled = true;
-    selectCurso.innerHTML = '<option value="">Sin cursos habilitados</option>';
-    hint.textContent = 'Este alumno no tiene cursos habilitados. Verificá las inscripciones.';
-    hint.style.color = 'var(--error)';
-    return;
-  }
-
-  // Poblar cursos
-  selectCurso.disabled = false;
-  selectCurso.innerHTML = '<option value="">Seleccioná un curso...</option>';
-  alumno.Cursos.forEach(c => {
-    const opt = document.createElement('option');
-    opt.value = c.Nombre; // guardamos el NOMBRE (es lo que va al diploma)
-    opt.textContent = c.Nombre;
-    selectCurso.appendChild(opt);
-  });
-  hint.textContent = alumno.Cursos.length + ' curso(s) disponible(s) para este alumno.';
-  hint.style.color = 'var(--ink-soft)';
-}
-
-/**
- * Envía el formulario de egresado.
- */
-async function submitEgresado() {
-  const dni = document.getElementById('ef_Alumno').value;
-  const curso = document.getElementById('ef_Curso').value;
-  const tipo = document.getElementById('ef_Tipo').value;
-  const fecha = document.getElementById('ef_Fecha').value.trim();
-  const acta = document.getElementById('ef_Acta').value.trim();
-  const certificado = document.getElementById('ef_Certificado').value.trim();
-  const estado = document.getElementById('ef_Estado').value;
-
-  // Validaciones
-  if (!dni) { showToast('Falta elegir un alumno.', true); return; }
-  if (!curso) { showToast('Falta elegir un curso.', true); return; }
-  if (!fecha) { showToast('Falta la fecha.', true); return; }
-  if (!acta) { showToast('Falta el acta.', true); return; }
-  if (!certificado) { showToast('Falta el certificado.', true); return; }
-
-  // Buscar el nombre del alumno para guardarlo en la hoja Egresados
-  const alumno = DATA.alumnosConCursos.find(a => String(a.ID_Alumno) === String(dni));
-  const nombreAlumno = alumno ? alumno.Nombre : '';
-
-  const data = {
-    Fecha: fecha,
-    Nombre_Alumno: nombreAlumno,
-    Curso: curso,
-    DNI: dni,
-    Acta: acta,
-    Certificado: certificado,
-    Tipo: tipo,
-    Estado: estado
-  };
-
-  try {
-    const res = await api('addEgresado', { data });
-    if (res.error) throw new Error(res.error);
-    showToast('Egresado agregado correctamente.');
-    closeForm();
-    await loadAll();
-  } catch (e) {
-    showToast('Error al guardar: ' + e.message, true);
-  }
-}
 function renderAll() {
   renderCursos(); renderClases(); renderAlumnos(); renderInscripciones(); renderCertificados();
 }
@@ -579,20 +426,29 @@ function switchTab(tab) {
 
 function renderCursos() {
   const tbody = document.getElementById('tbody-cursos');
-  if (!DATA.cursos.length) { tbody.innerHTML = emptyRow(7, 'Todavía no cargaste ningún curso.'); return; }
-  tbody.innerHTML = DATA.cursos.map(c => `
+  if (!DATA.cursos.length) { tbody.innerHTML = emptyRow(8, 'Todavía no cargaste ningún curso.'); return; }
+  tbody.innerHTML = DATA.cursos.map(c => {
+    const cerrado = cursoCerrado(c);
+    const badge = cerrado ? '<span class="badge cerrado">Cerrado</span>' : '';
+    const botonEstado = cerrado
+      ? `<button class="btn btn-secondary btn-small" onclick="reabrirCurso(${c._row})">Reabrir</button>`
+      : `<button class="btn btn-secondary btn-small" onclick="cerrarCurso(${c._row})">Cerrar</button>`;
+    return `
     <tr>
       <td>${c.Imagen_URL ? `<img class="thumb" src="${esc(c.Imagen_URL)}">` : '—'}</td>
       <td>${esc(c.ID_Curso)}</td>
       <td>${esc(c.Nombre)}</td>
       <td>${esc(c.Duracion)}</td>
-      <td>$${esc(c.Precio_ARS)}</td>
-      <td>US$${esc(c.Precio_USD)}</td>
+      <td>$${formatearPrecio(c.Precio_ARS)}</td>
+      <td>US$${formatearPrecio(c.Precio_USD)}</td>
+      <td>${badge}</td>
       <td class="actions">
         <button class="btn btn-secondary btn-small" onclick="openForm('curso', ${c._row})">Editar</button>
-        <button class="btn btn-danger" onclick="removeItem('Curso', 'cursos', ${c._row})">Borrar</button>
+        ${botonEstado}
+        <button class="btn btn-danger" onclick="borrarCurso(${c._row})">Borrar</button>
       </td>
-    </tr>`).join('');
+    </tr>`;
+  }).join('');
 }
 
 function renderClases() {
@@ -671,11 +527,61 @@ function renderCertificados() {
         <td>${pdf}</td>
         <td class="actions">
           <button class="btn btn-secondary btn-small" onclick="enviarPorMail(${e._row})">Enviar</button>
-          <button class="btn btn-secondary btn-small" onclick="openForm('egresado', ${e._row})">Editar</button>
+          <button class="btn btn-secondary btn-small" onclick="openFormEgresadoEditar(${e._row})">Editar</button>
           <button class="btn btn-danger" onclick="removeItem('Egresado', 'egresados', ${e._row})">Borrar</button>
         </td>
       </tr>`;
   }).join('');
+}
+
+/* ============================================================
+   ACCIONES CURSOS (cerrar / reabrir / borrar)
+   ============================================================ */
+
+async function cerrarCurso(row) {
+  if (!confirm('¿Cerrar este curso? Dejará de aparecer en el catálogo público, pero los alumnos ya inscriptos seguirán viéndolo en el aula.')) return;
+  try {
+    await api('cerrarCurso', { row });
+    showToast('Curso cerrado correctamente.');
+    await loadAll();
+  } catch (e) {
+    showToast('Error al cerrar: ' + e.message, true);
+  }
+}
+
+async function reabrirCurso(row) {
+  if (!confirm('¿Reabrir este curso? Volverá a aparecer en el catálogo público.')) return;
+  try {
+    await api('reabrirCurso', { row });
+    showToast('Curso reabierto correctamente.');
+    await loadAll();
+  } catch (e) {
+    showToast('Error al reabrir: ' + e.message, true);
+  }
+}
+
+async function borrarCurso(row) {
+  if (!confirm('¿Borrar DEFINITIVAMENTE este curso?\n\nSe borrarán también sus clases, materiales e inscripciones. Esta acción no se puede deshacer.')) return;
+  if (!confirm('¿Estás SEGURO?\n\nLos certificados ya emitidos NO se borran, pero el curso desaparecerá para siempre.')) return;
+  try {
+    await api('deleteCurso', { row });
+    showToast('Curso borrado correctamente.');
+    await loadAll();
+  } catch (e) {
+    showToast('Error al borrar: ' + e.message, true);
+  }
+}
+
+async function removeItem(label, key, row) {
+  if (!confirm(`¿Seguro que querés borrar este ${label.toLowerCase()}? Esta acción no se puede deshacer.`)) return;
+  const actionMap = { cursos:'deleteCurso', clases:'deleteClase', materiales:'deleteMaterial', alumnos:'deleteAlumno', inscripciones:'deleteInscripcion', egresados:'deleteEgresado' };
+  try {
+    await api(actionMap[key], { row });
+    showToast(label + ' borrado correctamente.');
+    await loadAll();
+  } catch (e) {
+    showToast('Error al borrar: ' + e.message, true);
+  }
 }
 
 async function emitirPendientes() {
@@ -724,23 +630,9 @@ async function enviarPorMail(row) {
   }
 }
 
-function emptyRow(colspan, msg) { return `<tr class="empty-row"><td colspan="${colspan}">${msg}</td></tr>`; }
-function esc(v) { return (v === undefined || v === null) ? '' : String(v).replace(/[&<>"]/g, s => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[s])); }
-function cursoNombre(id) { const c = DATA.cursos.find(x => x.ID_Curso === id); return c ? esc(c.Nombre) : esc(id); }
-function claseTitulo(id) { const c = DATA.clases.find(x => x.ID_Clase === id); return c ? esc(c.Titulo) : esc(id); }
-function alumnoNombre(id) { const a = DATA.alumnos.find(x => String(x.ID_Alumno) === String(id)); return a ? esc(a.Nombre) : esc(id); }
-
-async function removeItem(label, key, row) {
-  if (!confirm(`¿Seguro que querés borrar este ${label.toLowerCase()}? Esta acción no se puede deshacer.`)) return;
-  const actionMap = { cursos:'deleteCurso', clases:'deleteClase', materiales:'deleteMaterial', alumnos:'deleteAlumno', inscripciones:'deleteInscripcion', egresados:'deleteEgresado' };
-  try {
-    await api(actionMap[key], { row });
-    showToast(label + ' borrado correctamente.');
-    await loadAll();
-  } catch (e) {
-    showToast('Error al borrar: ' + e.message, true);
-  }
-}
+/* ============================================================
+   FORMULARIOS GENÉRICOS
+   ============================================================ */
 
 const FORM_DEFS = {
   curso: {
@@ -755,8 +647,7 @@ const FORM_DEFS = {
       {name:'Duracion', label:'Duración (ej: 40 hs)', type:'text'},
       {name:'Precio_ARS', label:'Precio en ARS', type:'number'},
       {name:'Precio_USD', label:'Precio en USD', type:'number'},
-      {name:'Descripcion_Larga', label:'Descripción larga', type:'textarea'},
-      {name:'Numero_Acta', label:'Número de acta', type:'text'}
+      {name:'Descripcion_Larga', label:'Descripción larga', type:'textarea'}
     ]
   },
   clase: {
@@ -784,13 +675,21 @@ const FORM_DEFS = {
     fields: [
       {name:'ID_Alumno', label:'Alumno', type:'select', source:'alumnos', optionValue:'ID_Alumno', optionLabel:'Nombre', required:true},
       {name:'ID_Curso', label:'Curso', type:'select', source:'cursos', optionValue:'ID_Curso', optionLabel:'Nombre', required:true},
-      {name:'Fecha_Alta', label:'Fecha de alta', type:'date'},
-            {name:'Habilitado', label:'Habilitado', type:'select-fixed', options:['Si','No'], required:true}
+      {name:'Fecha_Alta', label:'Fecha de alta', type:'date', required:true, defaultToday:true},
+      {name:'Habilitado', label:'Habilitado', type:'select-fixed', options:['Si','No'], required:true}
     ]
   }
 };
 
 let editingRow = null;
+
+function hoyISO() {
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  return y + '-' + m + '-' + dd;
+}
 
 function openForm(kind, row) {
   editingRow = row || null;
@@ -811,7 +710,8 @@ function openForm(kind, row) {
 }
 
 function renderField(f, existing) {
-  const val = existing ? (existing[f.name] ?? '') : '';
+  let val = existing ? (existing[f.name] ?? '') : '';
+  if (!existing && f.defaultToday && !val) val = hoyISO();
   const id = 'f_' + f.name;
 
   if (f.type === 'select') {
@@ -857,6 +757,10 @@ function closeForm() {
   document.getElementById('overlay').style.display = 'none';
   editingRow = null;
 }
+
+/* ============================================================
+   CONTENIDOS (Materiales de una clase)
+   ============================================================ */
 
 let contenidoClaseActual = null;
 let contenidoEditando = null;
@@ -990,6 +894,10 @@ async function borrarContenido(row) {
   }
 }
 
+/* ============================================================
+   UPLOAD / SUBMIT / HELPERS
+   ============================================================ */
+
 function fileToBase64(file) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -1068,12 +976,12 @@ function showToast(msg, isError) {
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => { el.className = 'toast' + (isError ? ' error' : ''); }, 3500);
 }
-  /* ============================================================
-   FORMULARIO ESPECIAL PARA EGRESADOS (con autocompletado)
+
+/* ============================================================
+   FORMULARIO DE EGRESADOS (nuevo + edición)
    ============================================================ */
 
 async function openFormEgresado() {
-  // 1. Cargar el próximo acta y certificado
   let proximoActa = { acta: '', certificado: '' };
   try {
     proximoActa = await api('getProximoActa', {});
@@ -1082,12 +990,10 @@ async function openFormEgresado() {
     return;
   }
 
-  // 2. Calcular fecha actual en formato "Mes Año"
   const meses = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
   const hoy = new Date();
   const fechaActual = meses[hoy.getMonth()] + ' ' + hoy.getFullYear();
 
-  // 3. Armar HTML del formulario
   const html = `
     <h3>Nuevo egresado</h3>
     <div id="form-fields">
@@ -1147,7 +1053,6 @@ async function openFormEgresado() {
   document.getElementById('form-panel').style.display = 'block';
   document.getElementById('overlay').style.display = 'block';
 
-  // 4. Poblar el desplegable de alumnos
   const selectAlumno = document.getElementById('ef_Alumno');
   const alumnos = DATA.alumnosConCursos.slice().sort((a, b) =>
     String(a.Nombre || '').localeCompare(String(b.Nombre || ''), 'es')
@@ -1201,7 +1106,7 @@ function onAlumnoEgresadoChange() {
 }
 
 async function submitEgresado() {
-  const dni = document.getElementById('ef_Alumno').value;
+  const dniRaw = document.getElementById('ef_Alumno').value;
   const curso = document.getElementById('ef_Curso').value;
   const tipo = document.getElementById('ef_Tipo').value;
   const fecha = document.getElementById('ef_Fecha').value.trim();
@@ -1209,13 +1114,15 @@ async function submitEgresado() {
   const certificado = document.getElementById('ef_Certificado').value.trim();
   const estado = document.getElementById('ef_Estado').value;
 
+  const dni = String(dniRaw || '').replace(/\./g, '').trim();
+
   if (!dni) { showToast('Falta elegir un alumno.', true); return; }
   if (!curso) { showToast('Falta elegir un curso.', true); return; }
   if (!fecha) { showToast('Falta la fecha.', true); return; }
   if (!acta) { showToast('Falta el acta.', true); return; }
   if (!certificado) { showToast('Falta el certificado.', true); return; }
 
-  const alumno = DATA.alumnosConCursos.find(a => String(a.ID_Alumno) === String(dni));
+  const alumno = DATA.alumnosConCursos.find(a => String(a.ID_Alumno).replace(/\./g,'') === dni);
   const nombreAlumno = alumno ? alumno.Nombre : '';
 
   const data = {
@@ -1233,6 +1140,109 @@ async function submitEgresado() {
     const res = await api('addEgresado', { data });
     if (res.error) throw new Error(res.error);
     showToast('Egresado agregado correctamente.');
+    closeForm();
+    await loadAll();
+  } catch (e) {
+    showToast('Error al guardar: ' + e.message, true);
+  }
+}
+
+/* ============================================================
+   EDITAR EGRESADO EXISTENTE
+   ============================================================ */
+
+async function openFormEgresadoEditar(row) {
+  const eg = DATA.egresados.find(x => x._row === row);
+  if (!eg) { showToast('No se encontró el egresado.', true); return; }
+
+  const html = `
+    <h3>Editar egresado</h3>
+    <div id="form-fields">
+      <div class="field">
+        <label>Alumno</label>
+        <input type="text" id="ef_Nombre_Alumno" value="${esc(eg.Nombre_Alumno || '')}">
+      </div>
+      <div class="field">
+        <label>DNI</label>
+        <input type="text" id="ef_DNI" value="${esc(eg.DNI || '')}">
+      </div>
+      <div class="field">
+        <label>Curso</label>
+        <input type="text" id="ef_Curso" value="${esc(eg.Curso || '')}">
+      </div>
+      <div class="field">
+        <label>Tipo</label>
+        <select id="ef_Tipo">
+          <option value="Diploma" ${eg.Tipo === 'Diploma' ? 'selected' : ''}>Diploma</option>
+          <option value="Seminario" ${eg.Tipo === 'Seminario' ? 'selected' : ''}>Seminario</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Fecha (mes y año)</label>
+        <input type="text" id="ef_Fecha" value="${esc(eg.Fecha || '')}">
+      </div>
+      <div class="field">
+        <label>Acta</label>
+        <input type="text" id="ef_Acta" value="${esc(eg.Acta || '')}">
+      </div>
+      <div class="field">
+        <label>Certificado</label>
+        <input type="text" id="ef_Certificado" value="${esc(eg.Certificado || '')}">
+      </div>
+      <div class="field">
+        <label>Estado</label>
+        <select id="ef_Estado">
+          <option value="Pendiente" ${eg.Estado === 'Pendiente' ? 'selected' : ''}>Pendiente</option>
+          <option value="Emitido" ${eg.Estado === 'Emitido' ? 'selected' : ''}>Emitido</option>
+          <option value="Enviado" ${eg.Estado === 'Enviado' ? 'selected' : ''}>Enviado</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>URL del PDF</label>
+        <input type="text" id="ef_URL_PDF" value="${esc(eg.URL_PDF || '')}" readonly>
+        <div class="field-hint">Se genera automáticamente al emitir el certificado.</div>
+      </div>
+    </div>
+    <div class="form-actions">
+      <button class="btn btn-primary" onclick="submitEgresadoEditar(${row})">Guardar cambios</button>
+      <button class="btn btn-secondary" onclick="closeForm()">Cancelar</button>
+    </div>
+  `;
+
+  document.getElementById('form-panel').innerHTML = html;
+  document.getElementById('form-panel').style.display = 'block';
+  document.getElementById('overlay').style.display = 'block';
+}
+
+async function submitEgresadoEditar(row) {
+  const dni = String(document.getElementById('ef_DNI').value || '').replace(/\./g, '').trim();
+  const nombre = document.getElementById('ef_Nombre_Alumno').value.trim();
+  const curso = document.getElementById('ef_Curso').value.trim();
+  const tipo = document.getElementById('ef_Tipo').value;
+  const fecha = document.getElementById('ef_Fecha').value.trim();
+  const acta = document.getElementById('ef_Acta').value.trim();
+  const certificado = document.getElementById('ef_Certificado').value.trim();
+  const estado = document.getElementById('ef_Estado').value;
+
+  if (!dni || !curso || !acta || !certificado) {
+    showToast('Faltan campos obligatorios (DNI, Curso, Acta o Certificado).', true);
+    return;
+  }
+
+  const data = {
+    Fecha: fecha,
+    Nombre_Alumno: nombre,
+    Curso: curso,
+    DNI: dni,
+    Acta: acta,
+    Certificado: certificado,
+    Tipo: tipo,
+    Estado: estado
+  };
+
+  try {
+    await api('updateEgresado', { row, data });
+    showToast('Egresado actualizado correctamente.');
     closeForm();
     await loadAll();
   } catch (e) {
