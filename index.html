@@ -207,6 +207,14 @@
   .contenido-item .acciones{display:flex; gap:6px;}
   .contenido-item button{padding:6px 11px; font-size:10.5px;}
   .divider{border-top:1px solid var(--line); margin:26px 0;}
+  .filter-bar{display:flex; gap:12px; flex-wrap:wrap; align-items:end; background:var(--card); border:1px solid var(--line); padding:16px 18px; margin-bottom:20px;}
+  .filter-item{min-width:190px; flex:1;}
+  .filter-item label{display:block; font-size:10.5px; font-weight:500; color:var(--rose-deep); text-transform:uppercase; letter-spacing:.16em; margin-bottom:6px;}
+  .filter-count{font-size:12px; color:var(--ink-soft); font-style:italic; margin-top:8px;}
+  th.sortable{cursor:pointer; user-select:none;}
+  th.sortable:hover{background:var(--rose-soft);}
+  .course-history{border:1px solid var(--line); padding:16px; margin-bottom:10px; background:var(--cream);}
+
 
   @media (max-width:820px){
     aside{width:100%; padding:20px; border-right:none; border-bottom:1px solid var(--line);}
@@ -278,23 +286,36 @@
       <section id="tab-alumnos" style="display:none">
         <div class="section-head">
           <div><h1>Alumnos</h1><p>Personas registradas en la academia.</p></div>
-          <button class="btn btn-primary" onclick="openForm('alumno')">+ Nuevo alumno</button>
+          <div style="display:flex; gap:10px; flex-wrap:wrap;">
+            <button class="btn btn-secondary" onclick="exportarAlumnosExcel()">Exportar Excel</button>
+            <button class="btn btn-primary" onclick="openForm('alumno')">+ Nuevo alumno</button>
+          </div>
+        </div>
+        <div class="filter-bar">
+          <div class="filter-item"><label>Buscar alumno</label><input id="buscar-alumno" type="text" placeholder="Nombre, DNI o email..." oninput="filtrarAlumnos()"></div>
+          <div class="filter-item"><div id="contador-alumnos" class="filter-count"></div></div>
         </div>
         <table><thead><tr>
-          <th>ID</th><th>Nombre</th><th>Email</th><th>Teléfono</th><th>Ciudad</th><th></th>
+          <th>ID / DNI</th><th>Nombre</th><th>Email</th><th>Teléfono</th><th>Ciudad</th><th></th>
         </tr></thead><tbody id="tbody-alumnos"></tbody></table>
       </section>
-
       <section id="tab-inscripciones" style="display:none">
         <div class="section-head">
           <div><h1>Inscripciones</h1><p>Qué alumno está anotado en qué curso.</p></div>
           <button class="btn btn-primary" onclick="openForm('inscripcion')">+ Nueva inscripción</button>
         </div>
+        <div class="filter-bar">
+          <div class="filter-item"><label>Alumno</label><select id="filtro-insc-alumno" onchange="renderInscripciones()"><option value="">Todos los alumnos</option></select></div>
+          <div class="filter-item"><label>Curso</label><select id="filtro-insc-curso" onchange="renderInscripciones()"><option value="">Todos los cursos</option></select></div>
+          <div class="filter-item"><div id="contador-inscripciones" class="filter-count"></div></div>
+        </div>
         <table><thead><tr>
-          <th>Alumno</th><th>Curso</th><th>Fecha de alta</th><th>Habilitado</th><th></th>
+          <th class="sortable" onclick="ordenarInscripciones('alumno')">Alumno ↕</th>
+          <th class="sortable" onclick="ordenarInscripciones('curso')">Curso ↕</th>
+          <th class="sortable" onclick="ordenarInscripciones('fecha')">Fecha de alta ↕</th>
+          <th class="sortable" onclick="ordenarInscripciones('habilitado')">Habilitado ↕</th><th></th>
         </tr></thead><tbody id="tbody-inscripciones"></tbody></table>
       </section>
-
       <section id="tab-certificados" style="display:none">
         <div class="section-head">
           <div><h1>Certificados</h1><p>Emisión de diplomas y certificados de seminario.</p></div>
@@ -302,6 +323,11 @@
            <button class="btn btn-secondary" onclick="openFormEgresado()">+ Nuevo egresado</button>
            <button class="btn btn-primary" id="btn-emitir" onclick="emitirPendientes()">Emitir pendientes</button>
           </div>
+        </div>
+        <div class="filter-bar">
+          <div class="filter-item"><label>Alumno</label><select id="filtro-cert-alumno" onchange="renderCertificados()"><option value="">Todos los alumnos</option></select></div>
+          <div class="filter-item"><label>Curso</label><select id="filtro-cert-curso" onchange="renderCertificados()"><option value="">Todos los cursos</option></select></div>
+          <div class="filter-item"><div id="contador-certificados" class="filter-count"></div></div>
         </div>
         <table><thead><tr>
           <th>Certificado</th><th>Alumno</th><th>Curso</th><th>Tipo</th><th>Estado</th><th>PDF</th><th></th>
@@ -412,6 +438,7 @@ function alumnoNombre(id) { const a = DATA.alumnos.find(x => String(x.ID_Alumno)
    ============================================================ */
 
 function renderAll() {
+  cargarFiltrosAdmin();
   renderCursos(); renderClases(); renderAlumnos(); renderInscripciones(); renderCertificados();
 }
 
@@ -471,69 +498,66 @@ function renderClases() {
   }).join('');
 }
 
-function renderAlumnos() {
+function normalizarTexto(v) {
+  return String(v || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+}
+function renderAlumnos(lista) {
   const tbody = document.getElementById('tbody-alumnos');
-  if (!DATA.alumnos.length) { tbody.innerHTML = emptyRow(6, 'Todavía no cargaste ningún alumno.'); return; }
-  tbody.innerHTML = DATA.alumnos.map(a => `
-    <tr>
-      <td>${esc(a.ID_Alumno)}</td>
-      <td>${esc(a.Nombre)}</td>
-      <td>${esc(a.Email)}</td>
-      <td>${esc(a.Telefono)}</td>
-      <td>${esc(a.Ciudad)}</td>
-      <td class="actions">
-        <button class="btn btn-secondary btn-small" onclick="openForm('alumno', ${a._row})">Editar</button>
-        <button class="btn btn-danger" onclick="removeItem('Alumno', 'alumnos', ${a._row})">Borrar</button>
-      </td>
-    </tr>`).join('');
+  const alumnos = Array.isArray(lista) ? lista : DATA.alumnos;
+  if (!alumnos.length) { tbody.innerHTML = emptyRow(6, DATA.alumnos.length ? 'No se encontraron alumnos.' : 'Todavía no cargaste ningún alumno.'); }
+  else tbody.innerHTML = alumnos.map(a => `
+    <tr><td>${esc(a.ID_Alumno)}</td><td>${esc(a.Nombre)}</td><td>${esc(a.Email)}</td><td>${esc(a.Telefono)}</td><td>${esc(a.Ciudad)}</td>
+    <td class="actions">
+      <button class="btn btn-secondary btn-small" onclick='openCursosAlumno(${JSON.stringify(String(a.ID_Alumno || ''))})'>Cursos</button>
+      <button class="btn btn-secondary btn-small" onclick="openForm('alumno', ${a._row})">Editar</button>
+      <button class="btn btn-danger" onclick="removeItem('Alumno', 'alumnos', ${a._row})">Borrar</button>
+    </td></tr>`).join('');
+  const c=document.getElementById('contador-alumnos'); if(c) c.textContent = `${alumnos.length} de ${DATA.alumnos.length} alumnos.`;
 }
-
+function filtrarAlumnos() {
+  const q=normalizarTexto(document.getElementById('buscar-alumno')?.value);
+  if(!q) return renderAlumnos(DATA.alumnos);
+  renderAlumnos(DATA.alumnos.filter(a => [a.Nombre,a.ID_Alumno,a.Email].some(v => normalizarTexto(v).includes(q))));
+}
+function openCursosAlumno(idAlumno) {
+  const a=DATA.alumnos.find(x=>String(x.ID_Alumno)===String(idAlumno));
+  if(!a){showToast('No se encontró el alumno.',true);return;}
+  const ins=DATA.inscripciones.filter(i=>String(i.ID_Alumno)===String(idAlumno));
+  let html=`<h3>Cursos de ${esc(a.Nombre)}</h3><div class="field-hint" style="margin-bottom:18px">DNI: ${esc(a.ID_Alumno)}</div>`;
+  if(!ins.length) html += '<p style="color:var(--ink-soft);font-style:italic">Este alumno no tiene cursos registrados.</p>';
+  else ins.forEach(i=>{ const c=DATA.cursos.find(x=>String(x.ID_Curso)===String(i.ID_Curso)); html += `<div class="course-history"><strong>${esc(c?c.Nombre:i.ID_Curso)}</strong><div class="field-hint">${esc(i.ID_Curso)} · ${esc(i.Habilitado || '')}</div></div>`; });
+  html += '<div class="form-actions"><button class="btn btn-secondary" onclick="closeForm()">Cerrar</button></div>';
+  document.getElementById('form-panel').innerHTML=html; document.getElementById('form-panel').style.display='block'; document.getElementById('overlay').style.display='block';
+}
+function exportarAlumnosExcel() {
+  if(!DATA.alumnos.length){showToast('No hay alumnos para exportar.',true);return;}
+  const cols=[['ID_Alumno','DNI'],['Nombre','Nombre'],['Email','Email'],['Telefono','Teléfono'],['Calle','Calle'],['Numero','Número'],['Piso','Piso'],['Depto','Departamento'],['Ciudad','Ciudad'],['Pais','País'],['Codigo_Postal','Código Postal']];
+  const csv=v=>'"'+String(v??'').replace(/"/g,'""')+'"';
+  const rows=[cols.map(c=>csv(c[1])).join(';'),...DATA.alumnos.map(a=>cols.map(c=>csv(a[c[0]])).join(';'))];
+  const blob=new Blob(['\uFEFF'+rows.join('\r\n')],{type:'text/csv;charset=utf-8;'}); const url=URL.createObjectURL(blob); const link=document.createElement('a'); link.href=url; link.download='alumnos_academia_'+new Date().toISOString().slice(0,10)+'.csv'; document.body.appendChild(link); link.click(); link.remove(); URL.revokeObjectURL(url); showToast('Listado de alumnos exportado correctamente.');
+}
+let inscSort={campo:'alumno',dir:1};
+function cargarFiltrosAdmin(){
+  const setOpts=(id,items,value,label,placeholder)=>{ const el=document.getElementById(id); if(!el)return; const old=el.value; el.innerHTML=`<option value="">${placeholder}</option>`+items.slice().sort((a,b)=>String(a[label]||'').localeCompare(String(b[label]||''),'es')).map(x=>`<option value="${esc(x[value])}">${esc(x[label])}</option>`).join(''); el.value=old; };
+  setOpts('filtro-insc-alumno',DATA.alumnos,'ID_Alumno','Nombre','Todos los alumnos'); setOpts('filtro-insc-curso',DATA.cursos,'ID_Curso','Nombre','Todos los cursos');
+  const certAl=[...new Set(DATA.egresados.map(e=>String(e.Nombre_Alumno||'')).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'es')); const ca=document.getElementById('filtro-cert-alumno'); if(ca){const old=ca.value;ca.innerHTML='<option value="">Todos los alumnos</option>'+certAl.map(v=>`<option>${esc(v)}</option>`).join('');ca.value=old;}
+  const certCu=[...new Set(DATA.egresados.map(e=>String(e.Curso||'')).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'es')); const cc=document.getElementById('filtro-cert-curso'); if(cc){const old=cc.value;cc.innerHTML='<option value="">Todos los cursos</option>'+certCu.map(v=>`<option>${esc(v)}</option>`).join('');cc.value=old;}
+}
+function formatearFechaAdmin(v){ if(!v)return ''; const d=new Date(v); if(isNaN(d.getTime()))return String(v); return d.toLocaleDateString('es-AR',{day:'2-digit',month:'2-digit',year:'numeric'}); }
+function ordenarInscripciones(campo){ if(inscSort.campo===campo)inscSort.dir*=-1;else inscSort={campo,dir:1}; renderInscripciones(); }
 function renderInscripciones() {
-  const tbody = document.getElementById('tbody-inscripciones');
-  if (!DATA.inscripciones.length) { tbody.innerHTML = emptyRow(5, 'Todavía no cargaste ninguna inscripción.'); return; }
-  tbody.innerHTML = DATA.inscripciones.map(i => `
-    <tr>
-      <td>${alumnoNombre(i.ID_Alumno)}</td>
-      <td>${cursoNombre(i.ID_Curso)}</td>
-      <td>${esc(i.Fecha_Alta)}</td>
-      <td>${esc(i.Habilitado)}</td>
-      <td class="actions">
-        <button class="btn btn-secondary btn-small" onclick="openForm('inscripcion', ${i._row})">Editar</button>
-        <button class="btn btn-danger" onclick="removeItem('Inscripción', 'inscripciones', ${i._row})">Borrar</button>
-      </td>
-    </tr>`).join('');
+  const tbody=document.getElementById('tbody-inscripciones'); const fa=document.getElementById('filtro-insc-alumno')?.value||''; const fc=document.getElementById('filtro-insc-curso')?.value||'';
+  let arr=DATA.inscripciones.filter(i=>(!fa||String(i.ID_Alumno)===fa)&&(!fc||String(i.ID_Curso)===fc));
+  const val=(i,c)=>c==='alumno'?alumnoNombre(i.ID_Alumno):c==='curso'?cursoNombre(i.ID_Curso):c==='fecha'?new Date(i.Fecha_Alta).getTime()||0:String(i.Habilitado||'');
+  arr.sort((a,b)=>{const A=val(a,inscSort.campo),B=val(b,inscSort.campo);return (typeof A==='number'?A-B:String(A).localeCompare(String(B),'es'))*inscSort.dir;});
+  tbody.innerHTML=arr.length?arr.map(i=>`<tr><td>${alumnoNombre(i.ID_Alumno)}</td><td>${cursoNombre(i.ID_Curso)}</td><td>${esc(formatearFechaAdmin(i.Fecha_Alta))}</td><td>${esc(i.Habilitado)}</td><td class="actions"><button class="btn btn-secondary btn-small" onclick="openForm('inscripcion', ${i._row})">Editar</button><button class="btn btn-danger" onclick="removeItem('Inscripción','inscripciones',${i._row})">Borrar</button></td></tr>`).join(''):emptyRow(5,'No se encontraron inscripciones.');
+  const c=document.getElementById('contador-inscripciones');if(c)c.textContent=`${arr.length} de ${DATA.inscripciones.length} inscripciones.`;
 }
-
 function renderCertificados() {
-  const tbody = document.getElementById('tbody-certificados');
-  if (!tbody) return;
-  if (!DATA.egresados.length) {
-    tbody.innerHTML = emptyRow(7, 'Todavía no hay certificados cargados.');
-    return;
-  }
-  tbody.innerHTML = DATA.egresados.map(e => {
-    const estado = String(e.Estado || 'Pendiente').trim();
-    const claseBadge = estado.toLowerCase();
-    const pdf = e.URL_PDF
-      ? `<a href="${esc(e.URL_PDF)}" target="_blank" rel="noopener" class="btn btn-success">Ver PDF</a>`
-      : '—';
-    return `
-      <tr>
-        <td>${esc(e.Certificado)}</td>
-        <td>${esc(e.Nombre_Alumno)}</td>
-        <td>${esc(e.Curso)}</td>
-        <td>${esc(e.Tipo)}</td>
-        <td><span class="badge ${claseBadge}">${esc(estado)}</span></td>
-        <td>${pdf}</td>
-        <td class="actions">
-          <button class="btn btn-secondary btn-small" onclick="enviarPorMail(${e._row})">Enviar</button>
-          <button class="btn btn-secondary btn-small" onclick="openFormEgresadoEditar(${e._row})">Editar</button>
-          <button class="btn btn-danger" onclick="removeItem('Egresado', 'egresados', ${e._row})">Borrar</button>
-        </td>
-      </tr>`;
-  }).join('');
+  const tbody=document.getElementById('tbody-certificados'); if(!tbody)return; const fa=document.getElementById('filtro-cert-alumno')?.value||''; const fc=document.getElementById('filtro-cert-curso')?.value||''; const arr=DATA.egresados.filter(e=>(!fa||String(e.Nombre_Alumno)===fa)&&(!fc||String(e.Curso)===fc));
+  if(!arr.length) tbody.innerHTML=emptyRow(7,DATA.egresados.length?'No se encontraron certificados.':'Todavía no hay certificados cargados.'); else tbody.innerHTML=arr.map(e=>{const estado=String(e.Estado||'Pendiente').trim();const pdf=e.URL_PDF?`<a href="${esc(e.URL_PDF)}" target="_blank" rel="noopener" class="btn btn-success">Ver PDF</a>`:'—';return `<tr><td>${esc(e.Certificado)}</td><td>${esc(e.Nombre_Alumno)}</td><td>${esc(e.Curso)}</td><td>${esc(e.Tipo)}</td><td><span class="badge ${estado.toLowerCase()}">${esc(estado)}</span></td><td>${pdf}</td><td class="actions"><button class="btn btn-secondary btn-small" onclick="enviarPorMail(${e._row})">Enviar</button><button class="btn btn-secondary btn-small" onclick="openFormEgresadoEditar(${e._row})">Editar</button><button class="btn btn-danger" onclick="removeItem('Egresado','egresados',${e._row})">Borrar</button></td></tr>`;}).join('');
+  const c=document.getElementById('contador-certificados');if(c)c.textContent=`${arr.length} de ${DATA.egresados.length} certificados.`;
 }
-
 /* ============================================================
    ACCIONES CURSOS (cerrar / reabrir / borrar)
    ============================================================ */
@@ -661,13 +685,18 @@ const FORM_DEFS = {
   alumno: {
     title: 'Alumno', addAction: 'addAlumno', updAction: 'updateAlumno', dataKey: 'alumnos', idKey: 'ID_Alumno',
     fields: [
-      {name:'ID_Alumno', label:'ID de alumno (ej: DNI)', type:'text', required:true, lockOnEdit:true},
+      {name:'ID_Alumno', label:'DNI', type:'text', required:true, lockOnEdit:true},
       {name:'Nombre', label:'Nombre completo', type:'text', required:true},
       {name:'Email', label:'Email', type:'text', required:true},
       {name:'Password', label:'Contraseña de acceso', type:'text', required:true},
       {name:'Telefono', label:'Teléfono', type:'text'},
+      {name:'Calle', label:'Calle', type:'text'},
+      {name:'Numero', label:'Número', type:'text'},
+      {name:'Piso', label:'Piso', type:'text'},
+      {name:'Depto', label:'Departamento', type:'text'},
       {name:'Ciudad', label:'Ciudad', type:'text'},
-      {name:'Pais', label:'País', type:'text'}
+      {name:'Pais', label:'País', type:'text'},
+      {name:'Codigo_Postal', label:'Código postal', type:'text'}
     ]
   },
   inscripcion: {
