@@ -626,20 +626,7 @@ const cantidadContenidos =
       c => String(c.ID_Clase) === String(m.ID_Clase)
     )
   ).length;
-  const videos =
-DATA.materiales.filter(
-  m =>
-    String(m.ID_Clase) === String(c.ID_Clase) &&
-    m.Tipo === 'Video'
-).length;
-
-const pdfs =
-DATA.materiales.filter(
-  m =>
-    String(m.ID_Clase) === String(c.ID_Clase) &&
-    m.Tipo === 'PDF'
-).length;
-
+  
 const cantidadAlumnos =
   DATA.inscripciones.filter(i =>
     String(i.ID_Curso) === String(cursoSeleccionadoClases) &&
@@ -675,16 +662,7 @@ const cantidadAlumnos =
       </button>
 
   </div>
-  <div class="curso-resumen">
-      <div class="resumen-card">
-          <div class="numero">
-              ${cantidadClases}
-          </div>
-          <div class="texto">
-              Clases
-          </div>
-      </div>
-
+  
       <div class="resumen-card">
           <div class="numero">
               ${cantidadContenidos}
@@ -773,24 +751,25 @@ const cantidad = videos + pdfs;
 </td>
 
             <td class="actions">
+ <button
+      class="btn btn-secondary btn-small"
+      onclick="openContenidos('${c.ID_Clase}')">
+      Contenidos
+    </button>
 
-                <button
-                  class="btn btn-secondary btn-small"
-                  onclick="openForm('clase',${c._row})">
+    <button
+      class="btn btn-secondary btn-small"
+      onclick="openForm('clase',${c._row})">
+      Editar
+    </button>
 
-                  Editar
+    <button
+      class="btn btn-danger"
+      onclick="removeItem('Clase','clases',${c._row})">
+      Borrar
+    </button>
 
-                </button>
-
-                <button
-                  class="btn btn-danger"
-                  onclick="removeItem('Clase','clases',${c._row})">
-
-                  Borrar
-
-                </button>
-
-            </td>
+</td>
 
         </tr>
         `;
