@@ -215,7 +215,48 @@
   th.sortable:hover{background:var(--rose-soft);}
   .course-history{border:1px solid var(--line); padding:16px; margin-bottom:10px; background:var(--cream);}
 
+.clases-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(320px,1fr));
+  gap:18px;
+}
 
+.curso-card{
+  background:var(--card);
+  border:1px solid var(--line);
+  padding:24px;
+  border-radius:2px;
+  box-shadow:0 2px 20px -10px rgba(201,143,138,.18);
+}
+
+.curso-card h3{
+  font-size:22px;
+  margin-bottom:10px;
+}
+
+.curso-card .stats{
+  color:var(--ink-soft);
+  margin-bottom:18px;
+  line-height:1.8;
+}
+
+.clases-header{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  margin-bottom:24px;
+  flex-wrap:wrap;
+  gap:12px;
+}
+
+.btn-back{
+  background:none;
+  border:none;
+  padding:0;
+  color:var(--rose-deep);
+  cursor:pointer;
+  font-size:14px;
+}
   @media (max-width:820px){
     aside{width:100%; padding:20px; border-right:none; border-bottom:1px solid var(--line);}
     aside .logo{width:56px; margin-bottom:8px;}
@@ -273,15 +314,18 @@
         </tr></thead><tbody id="tbody-cursos"></tbody></table>
       </section>
 
-      <section id="tab-clases" style="display:none">
-        <div class="section-head">
-          <div><h1>Clases</h1><p>Cada clase puede tener varios contenidos: videos y PDFs, en el orden que quieras.</p></div>
-          <button class="btn btn-primary" onclick="openForm('clase')">+ Nueva clase</button>
-        </div>
-        <table><thead><tr>
-          <th>ID</th><th>Curso</th><th>Orden</th><th>Título</th><th>Contenidos</th><th></th>
-        </tr></thead><tbody id="tbody-clases"></tbody></table>
-      </section>
+     <section id="tab-clases" style="display:none">
+
+  <div class="section-head">
+    <div>
+      <h1>Clases</h1>
+      <p>Administración de clases y contenidos.</p>
+    </div>
+  </div>
+
+  <div id="clases-container"></div>
+
+</section>
 
       <section id="tab-alumnos" style="display:none">
         <div class="section-head">
@@ -347,6 +391,7 @@ const API_URL = 'https://script.google.com/macros/s/AKfycbzyGiSnozdfWIIVSy1PY25W
 
 let DATA = { cursos: [], clases: [], materiales: [], alumnos: [], inscripciones: [], egresados: [], alumnosConCursos: [] };
 let currentTab = 'cursos';
+let cursoSeleccionadoClases = null;
 
 async function api(action, payload) {
   const res = await fetch(API_URL, {
@@ -478,26 +523,234 @@ function renderCursos() {
   }).join('');
 }
 
-function renderClases() {
-  const tbody = document.getElementById('tbody-clases');
-  if (!DATA.clases.length) { tbody.innerHTML = emptyRow(6, 'Todavía no cargaste ninguna clase.'); return; }
-  tbody.innerHTML = DATA.clases.map(c => {
-    const cantidad = DATA.materiales.filter(m => String(m.ID_Clase) === String(c.ID_Clase)).length;
-    return `
-    <tr>
-      <td>${esc(c.ID_Clase)}</td>
-      <td>${cursoNombre(c.ID_Curso)}</td>
-      <td>${esc(c.Orden)}</td>
-      <td>${esc(c.Titulo)}</td>
-      <td><button class="btn btn-secondary btn-small" onclick="openContenidos('${c.ID_Clase}')">${cantidad ? cantidad + ' contenido' + (cantidad === 1 ? '' : 's') : 'Agregar contenido'}</button></td>
-      <td class="actions">
-        <button class="btn btn-secondary btn-small" onclick="openForm('clase', ${c._row})">Editar</button>
-        <button class="btn btn-danger" onclick="removeItem('Clase', 'clases', ${c._row})">Borrar</button>
-      </td>
-    </tr>`;
-  }).join('');
+function renderClases(){
+
+  const container =
+    document.getElementById('clases-container');
+
+  if(!cursoSeleccionadoClases){
+
+      container.innerHTML = `
+      <div class="clases-grid">
+
+      ${DATA.cursos.map(curso=>{
+
+          const clasesCurso =
+            DATA.clases.filter(
+              c=>String(c.ID_Curso)===String(curso.ID_Curso)
+            );
+
+          const contenidosCurso =
+            DATA.materiales.filter(m=>
+              clasesCurso.some(
+                cl=>String(cl.ID_Clase)===String(m.ID_Clase)
+              )
+            );
+
+          return `
+          <div class="curso-card">
+
+              <h3>${esc(curso.Nombre)}</h3>
+
+              <div class="stats">
+                  ${clasesCurso.length} clases<br>
+                  ${contenidosCurso.length} contenidos
+              </div>
+
+              <button
+                 class="btn btn-primary"
+                 onclick="verClasesCurso('${curso.ID_Curso}')">
+
+                 Ver clases
+
+              </button>
+
+          </div>
+          `;
+
+      }).join('')}
+
+      </div>
+      `;
+
+      return;
+  }
+
+  const curso =
+      DATA.cursos.find(
+        c=>String(c.ID_Curso)===String(cursoSeleccionadoClases)
+      );
+
+  const clases =
+      DATA.clases
+      .filter(
+        c=>String(c.ID_Curso)===String(cursoSeleccionadoClases)
+      )
+      .sort(
+        (a,b)=>
+        (Number(a.Orden)||0)-
+        (Number(b.Orden)||0)
+      );
+
+  container.innerHTML = `
+
+  <div class="clases-header">
+
+      <div>
+
+          <button
+            class="btn-back"
+            onclick="volverCursosClases()">
+
+              ← Volver a cursos
+
+          </button>
+
+          <h2 style="margin-top:10px;">
+             ${curso ? esc(curso.Nombre) : ''}
+          </h2>
+
+      </div>
+
+      <button
+         class="btn btn-primary"
+         onclick="nuevaClaseCurso()">
+
+         + Nueva Clase
+
+      </button>
+
+  </div>
+
+  <table>
+
+    <thead>
+
+      <tr>
+
+        <th>Orden</th>
+        <th>Título</th>
+        <th>Contenidos</th>
+        <th></th>
+
+      </tr>
+
+    </thead>
+
+    <tbody>
+
+    ${
+      clases.length
+      ?
+      clases.map(c=>{
+
+        const cantidad =
+        DATA.materiales.filter(
+          m=>String(m.ID_Clase)===String(c.ID_Clase)
+        ).length;
+
+        return `
+
+        <tr>
+
+            <td>${esc(c.Orden)}</td>
+
+            <td>${esc(c.Titulo)}</td>
+
+            <td>
+
+                <button
+                  class="btn btn-secondary btn-small"
+                  onclick="openContenidos('${c.ID_Clase}')">
+
+                  ${
+                    cantidad
+                    ?
+                    cantidad +
+                    ' contenido' +
+                    (cantidad>1?'s':'')
+                    :
+                    'Agregar contenido'
+                  }
+
+                </button>
+
+            </td>
+
+            <td class="actions">
+
+                <button
+                  class="btn btn-secondary btn-small"
+                  onclick="openForm('clase',${c._row})">
+
+                  Editar
+
+                </button>
+
+                <button
+                  class="btn btn-danger"
+                  onclick="removeItem('Clase','clases',${c._row})">
+
+                  Borrar
+
+                </button>
+
+            </td>
+
+        </tr>
+        `;
+
+      }).join('')
+      :
+      `
+      <tr class="empty-row">
+          <td colspan="4">
+              Este curso todavía no tiene clases.
+          </td>
+      </tr>
+      `
+    }
+
+    </tbody>
+
+  </table>
+  `;
+}
+function verClasesCurso(idCurso){
+
+    cursoSeleccionadoClases = idCurso;
+
+    renderClases();
+
 }
 
+function volverCursosClases(){
+
+    cursoSeleccionadoClases = null;
+
+    renderClases();
+
+}
+
+function nuevaClaseCurso(){
+
+    openForm('clase');
+
+    setTimeout(()=>{
+
+        const combo =
+           document.getElementById('f_ID_Curso');
+
+        if(combo){
+
+            combo.value =
+              cursoSeleccionadoClases;
+
+        }
+
+    },150);
+
+}
 function normalizarTexto(v) {
   return String(v || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
 }
