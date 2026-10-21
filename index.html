@@ -257,6 +257,25 @@
   cursor:pointer;
   font-size:14px;
 }
+  .contenido-resumen{
+  display:flex;
+  gap:12px;
+  align-items:center;
+  flex-wrap:wrap;
+  font-size:12px;
+}
+
+.info-pill{
+  padding:4px 8px;
+  background:#F7F2EE;
+  border:1px solid var(--line);
+  border-radius:2px;
+}
+
+.info-warning{
+  color:#B3452C;
+  font-weight:500;
+}
   @media (max-width:820px){
     aside{width:100%; padding:20px; border-right:none; border-bottom:1px solid var(--line);}
     aside .logo{width:56px; margin-bottom:8px;}
@@ -546,6 +565,7 @@ function renderClases(){
                 cl=>String(cl.ID_Clase)===String(m.ID_Clase)
               )
             );
+        
           const alumnosCurso =
             DATA.inscripciones.filter(
               i =>
@@ -606,6 +626,19 @@ const cantidadContenidos =
       c => String(c.ID_Clase) === String(m.ID_Clase)
     )
   ).length;
+  const videos =
+DATA.materiales.filter(
+  m =>
+    String(m.ID_Clase) === String(c.ID_Clase) &&
+    m.Tipo === 'Video'
+).length;
+
+const pdfs =
+DATA.materiales.filter(
+  m =>
+    String(m.ID_Clase) === String(c.ID_Clase) &&
+    m.Tipo === 'PDF'
+).length;
 
 const cantidadAlumnos =
   DATA.inscripciones.filter(i =>
@@ -693,10 +726,21 @@ const cantidadAlumnos =
       ?
       clases.map(c=>{
 
-        const cantidad =
-        DATA.materiales.filter(
-          m=>String(m.ID_Clase)===String(c.ID_Clase)
-        ).length;
+        const videos =
+DATA.materiales.filter(
+  m =>
+    String(m.ID_Clase) === String(c.ID_Clase) &&
+    m.Tipo === 'Video'
+).length;
+
+const pdfs =
+DATA.materiales.filter(
+  m =>
+    String(m.ID_Clase) === String(c.ID_Clase) &&
+    m.Tipo === 'PDF'
+).length;
+
+const cantidad = videos + pdfs;
 
         return `
 
@@ -706,25 +750,27 @@ const cantidadAlumnos =
 
             <td>${esc(c.Titulo)}</td>
 
-            <td>
+<td>
 
-                <button
-                  class="btn btn-secondary btn-small"
-                  onclick="openContenidos('${c.ID_Clase}')">
+    <div class="contenido-resumen">
 
-                  ${
-                    cantidad
-                    ?
-                    cantidad +
-                    ' contenido' +
-                    (cantidad>1?'s':'')
-                    :
-                    'Agregar contenido'
-                  }
+        <span class="info-pill">
+            🎥 ${videos}
+        </span>
 
-                </button>
+        <span class="info-pill">
+            📄 ${pdfs}
+        </span>
 
-            </td>
+        ${
+          cantidad === 0
+          ? '<span class="info-warning">⚠ Sin contenido</span>'
+          : ''
+        }
+
+    </div>
+
+</td>
 
             <td class="actions">
 
