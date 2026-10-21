@@ -618,20 +618,6 @@ function renderClases(){
       (Number(a.Orden) || 0) -
       (Number(b.Orden) || 0)
     );
-  const cantidadClases = clases.length;
-
-const cantidadContenidos =
-  DATA.materiales.filter(m =>
-    clases.some(
-      c => String(c.ID_Clase) === String(m.ID_Clase)
-    )
-  ).length;
-  
-const cantidadAlumnos =
-  DATA.inscripciones.filter(i =>
-    String(i.ID_Curso) === String(cursoSeleccionadoClases) &&
-    String(i.Habilitado).toLowerCase() === 'si'
-  ).length;
 
   container.innerHTML = `
 
@@ -663,25 +649,7 @@ const cantidadAlumnos =
 
   </div>
   
-      <div class="resumen-card">
-          <div class="numero">
-              ${cantidadContenidos}
-          </div>
-          <div class="texto">
-              Contenidos
-          </div>
-      </div>
-
-      <div class="resumen-card">
-          <div class="numero">
-              ${cantidadAlumnos}
-          </div>
-          <div class="texto">
-              Alumnos
-          </div>
-      </div>
-  </div>
-
+      
   <table>
 
     <thead>
