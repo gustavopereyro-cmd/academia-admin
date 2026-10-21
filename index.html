@@ -546,16 +546,23 @@ function renderClases(){
                 cl=>String(cl.ID_Clase)===String(m.ID_Clase)
               )
             );
-
+          const alumnosCurso =
+            DATA.inscripciones.filter(
+              i =>
+              String(i.ID_Curso) === String(curso.ID_Curso) &&
+              String(i.Habilitado).toLowerCase() === 'si'
+            );
+        
           return `
           <div class="curso-card">
 
               <h3>${esc(curso.Nombre)}</h3>
 
-              <div class="stats">
-                  ${clasesCurso.length} clases<br>
-                  ${contenidosCurso.length} contenidos
-              </div>
+            <div class="stats">
+            ${clasesCurso.length} clases<br>
+            ${contenidosCurso.length} contenidos<br>
+            ${alumnosCurso.length} alumnos
+            </div>
 
               <button
                  class="btn btn-primary"
