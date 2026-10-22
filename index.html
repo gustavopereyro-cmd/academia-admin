@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -326,6 +325,7 @@
       <button class="nav-btn" data-tab="alumnos" onclick="switchTab('alumnos')">Alumnos</button>
       <button class="nav-btn" data-tab="inscripciones" onclick="switchTab('inscripciones')">Inscripciones</button>
       <button class="nav-btn" data-tab="certificados" onclick="switchTab('certificados')">Certificados</button>
+      <button class="nav-btn" data-tab="preguntas" onclick="switchTab('preguntas')">Preguntas frecuentes</button>
       <button class="logout" onclick="logout()">Cerrar sesión</button>
     </aside>
 
@@ -386,6 +386,16 @@
           <th class="sortable" onclick="ordenarInscripciones('habilitado')">Habilitado ↕</th><th></th>
         </tr></thead><tbody id="tbody-inscripciones"></tbody></table>
       </section>
+      <section id="tab-preguntas" style="display:none">
+        <div class="section-head">
+          <div><h1>Preguntas frecuentes</h1><p>Se muestran en la página de cada curso del catálogo (las mismas para todos).</p></div>
+          <button class="btn btn-primary" onclick="openForm('pregunta')">+ Nueva pregunta</button>
+        </div>
+        <table><thead><tr>
+          <th>Orden</th><th>Pregunta</th><th>Respuesta</th><th></th>
+        </tr></thead><tbody id="tbody-preguntas"></tbody></table>
+      </section>
+
       <section id="tab-certificados" style="display:none">
         <div class="section-head">
           <div><h1>Certificados</h1><p>Emisión de diplomas y certificados de seminario.</p></div>
@@ -415,7 +425,7 @@
 <script>
 const API_URL = 'https://script.google.com/macros/s/AKfycbzyGiSnozdfWIIVSy1PY25WqgGS1l8MSssblAv3diG31t_TOCeap_YO-jfeSg7TIY2Q/exec';
 
-let DATA = { cursos: [], clases: [], materiales: [], alumnos: [], inscripciones: [], egresados: [], alumnosConCursos: [] };
+let DATA = { cursos: [], clases: [], materiales: [], alumnos: [], inscripciones: [], egresados: [], alumnosConCursos: [], preguntas: [] };
 let currentTab = 'cursos';
 let cursoSeleccionadoClases = null;
 
@@ -452,7 +462,8 @@ async function api(action, payload) {
 /* Columnas que identifican cada registro (el servidor las compara antes de editar o borrar) */
 const CLAVES_FILA = {
   cursos: ['ID_Curso'], clases: ['ID_Clase'], materiales: ['ID_Material'],
-  alumnos: ['ID_Alumno'], inscripciones: ['ID_Alumno', 'ID_Curso'], egresados: ['Certificado']
+  alumnos: ['ID_Alumno'], inscripciones: ['ID_Alumno', 'ID_Curso'], egresados: ['Certificado'],
+  preguntas: ['ID_Pregunta']
 };
 function expectDe(key, row) {
   const it = (DATA[key] || []).find(x => x._row === row);
@@ -501,11 +512,12 @@ if (getToken()) {
 
 async function loadAll() {
   try {
-    const [cursos, clases, materiales, alumnos, inscripciones, egresados, alumnosConCursos] = await Promise.all([
+    const [cursos, clases, materiales, alumnos, inscripciones, egresados, alumnosConCursos, preguntas] = await Promise.all([
       api('getCursos', {}), api('getClases', {}), api('getMateriales', {}),
       api('getAlumnos', {}), api('getInscripciones', {}), api('getEgresados', {}),
-      api('getAlumnosConCursos', {})
+      api('getAlumnosConCursos', {}), api('getPreguntas', {})
     ]);
+    DATA.preguntas = preguntas;
     DATA.cursos = cursos; DATA.clases = clases; DATA.materiales = materiales;
     DATA.alumnos = alumnos; DATA.inscripciones = inscripciones;
     DATA.egresados = egresados;
@@ -549,13 +561,13 @@ function alumnoNombre(id) { const a = DATA.alumnos.find(x => String(x.ID_Alumno)
 
 function renderAll() {
   cargarFiltrosAdmin();
-  renderCursos(); renderClases(); renderAlumnos(); renderInscripciones(); renderCertificados();
+  renderCursos(); renderClases(); renderAlumnos(); renderInscripciones(); renderCertificados(); renderPreguntas();
 }
 
 function switchTab(tab) {
   currentTab = tab;
   document.querySelectorAll('.nav-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
-  ['cursos','clases','alumnos','inscripciones','certificados'].forEach(t => {
+  ['cursos','clases','alumnos','inscripciones','certificados','preguntas'].forEach(t => {
     const el = document.getElementById('tab-' + t);
     if (el) el.style.display = (t === tab) ? 'block' : 'none';
   });
@@ -903,6 +915,20 @@ function renderCertificados() {
    ACCIONES CURSOS (cerrar / reabrir / borrar)
    ============================================================ */
 
+function renderPreguntas() {
+  const tbody = document.getElementById('tbody-preguntas');
+  if (!tbody) return;
+  const arr = (DATA.preguntas || []).slice().sort((a, b) => (Number(a.Orden) || 0) - (Number(b.Orden) || 0));
+  if (!arr.length) { tbody.innerHTML = emptyRow(4, 'Todavía no cargaste preguntas frecuentes.'); return; }
+  const corto = t => { const s = String(t || ''); return s.length > 110 ? s.slice(0, 110) + '…' : s; };
+  tbody.innerHTML = arr.map(q => `<tr>
+    <td>${esc(q.Orden)}</td><td>${esc(q.Pregunta)}</td><td style="color:var(--ink-soft)">${esc(corto(q.Respuesta))}</td>
+    <td class="actions">
+      <button class="btn btn-secondary btn-small" onclick="openForm('pregunta', ${q._row})">Editar</button>
+      <button class="btn btn-danger" onclick="removeItem('Pregunta','preguntas',${q._row})">Borrar</button>
+    </td></tr>`).join('');
+}
+
 async function cerrarCurso(row) {
   if (!confirm('¿Cerrar este curso? Dejará de aparecer en el catálogo público, pero los alumnos ya inscriptos seguirán viéndolo en el aula.')) return;
   try {
@@ -939,7 +965,7 @@ async function borrarCurso(row) {
 
 async function removeItem(label, key, row) {
   if (!confirm(`¿Seguro que querés borrar este ${label.toLowerCase()}? Esta acción no se puede deshacer.`)) return;
-  const actionMap = { cursos:'deleteCurso', clases:'deleteClase', materiales:'deleteMaterial', alumnos:'deleteAlumno', inscripciones:'deleteInscripcion', egresados:'deleteEgresado' };
+  const actionMap = { cursos:'deleteCurso', clases:'deleteClase', materiales:'deleteMaterial', alumnos:'deleteAlumno', inscripciones:'deleteInscripcion', egresados:'deleteEgresado', preguntas:'deletePregunta' };
   try {
     await api(actionMap[key], { row, expect: expectDe(key, row) });
     showToast(label + ' borrado correctamente.');
@@ -1009,9 +1035,11 @@ const FORM_DEFS = {
       {name:'Fecha_Inicio_Publicacion', label:'Fecha de inicio de publicación', type:'date'},
       {name:'Fecha_Fin_Publicacion', label:'Fecha de fin de publicación', type:'date'},
       {name:'Duracion', label:'Duración (ej: 40 hs)', type:'text'},
+      {name:'Nivel', label:'Nivel', type:'select-fixed', options:['', 'Inicial', 'Intermedio', 'Avanzado']},
       {name:'Precio_ARS', label:'Precio en ARS', type:'number'},
       {name:'Precio_USD', label:'Precio en USD', type:'number'},
-      {name:'Descripcion_Larga', label:'Descripción larga', type:'textarea'}
+      {name:'Descripcion_Larga', label:'Descripción larga', type:'textarea'},
+      {name:'Requisitos', label:'Requisitos', type:'textarea', hint:'Uno por línea. Ej: Ser profesional.'}
     ]
   },
   clase: {
@@ -1037,6 +1065,14 @@ const FORM_DEFS = {
       {name:'Ciudad', label:'Ciudad', type:'text'},
       {name:'Pais', label:'País', type:'text'},
       {name:'Codigo_Postal', label:'Código postal', type:'text'}
+    ]
+  },
+  pregunta: {
+    title: 'Pregunta', addAction: 'addPregunta', updAction: 'updatePregunta', dataKey: 'preguntas', idKey: 'ID_Pregunta',
+    fields: [
+      {name:'Orden', label:'Orden', type:'number', required:true},
+      {name:'Pregunta', label:'Pregunta', type:'text', required:true},
+      {name:'Respuesta', label:'Respuesta', type:'textarea', required:true}
     ]
   },
   inscripcion: {
@@ -1090,11 +1126,11 @@ function renderField(f, existing) {
     return `<div class="field"><label>${f.label}</label><select id="${id}"><option value="">Seleccioná...</option>${options}</select></div>`;
   }
   if (f.type === 'select-fixed') {
-    const options = f.options.map(o => `<option value="${o}" ${o===val?'selected':''}>${o}</option>`).join('');
+    const options = f.options.map(o => `<option value="${o}" ${o===String(val)?'selected':''}>${o || '— Sin especificar —'}</option>`).join('');
     return `<div class="field"><label>${f.label}</label><select id="${id}">${options}</select></div>`;
   }
   if (f.type === 'textarea') {
-    return `<div class="field"><label>${f.label}</label><textarea id="${id}">${esc(val)}</textarea></div>`;
+    return `<div class="field"><label>${f.label}</label><textarea id="${id}">${esc(val)}</textarea>${f.hint ? `<div class="field-hint">${f.hint}</div>` : ''}</div>`;
   }
   if (f.type === 'date') {
     return `<div class="field"><label>${f.label}</label><input type="date" id="${id}" value="${esc(val)}"></div>`;
