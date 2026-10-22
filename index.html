@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -88,7 +89,6 @@
     margin-bottom:2px; letter-spacing:.04em;
     transition:all .2s;
   }
-  .nav-btn:hover{background:var(--rose-soft); color:var(--ink);}
   .nav-btn.active{background:var(--rose); color:#fff; font-weight:500; letter-spacing:.08em;}
   .logout{
     font-family:'Jost',sans-serif; font-size:11.5px; font-weight:500;
@@ -98,7 +98,6 @@
     border-top:1px solid var(--line); margin-top:24px;
     transition:color .2s;
   }
-  .logout:hover{color:var(--ink);}
 
   main{flex:1; padding:44px 52px; max-width:1180px; overflow-x:hidden;}
   .section-head{display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:26px; gap:20px; flex-wrap:wrap;}
@@ -112,13 +111,9 @@
     transition:all .3s ease;
   }
   .btn-primary{background:var(--ink); color:#fff;}
-  .btn-primary:hover{background:var(--rose-deep); letter-spacing:.26em;}
   .btn-secondary{background:transparent; color:var(--ink); border:1px solid var(--line);}
-  .btn-secondary:hover{border-color:var(--rose); background:var(--rose-soft);}
   .btn-danger{background:transparent; color:var(--error); border:1px solid var(--line); padding:7px 12px; font-size:11px; letter-spacing:.14em;}
-  .btn-danger:hover{border-color:var(--error); background:#FBEFED;}
   .btn-success{background:transparent; color:#4F7942; border:1px solid #CFE0C7; padding:7px 12px; font-size:11px; letter-spacing:.14em; text-decoration:none; display:inline-block;}
-  .btn-success:hover{background:#E8F0E5; border-color:#4F7942; color:#4F7942;}
   .btn-small{padding:7px 13px; font-size:11px;}
   .btn[disabled]{opacity:.5; cursor:wait;}
   
@@ -135,7 +130,6 @@
     background:var(--paper);
   }
   tr:last-child td{border-bottom:none;}
-  tr:hover td{background:#FDFAF8;}
   td.actions{white-space:nowrap; text-align:right;}
   .thumb{width:48px; height:48px; object-fit:cover; border-radius:2px; vertical-align:middle; border:1px solid var(--line);}
   .empty-row td{text-align:center; color:var(--ink-soft); padding:44px; font-style:italic;}
@@ -199,7 +193,6 @@
     border-radius:2px; margin-bottom:8px; background:var(--cream);
     transition:border-color .2s;
   }
-  .contenido-item:hover{border-color:var(--rose);}
   .contenido-item .icono{font-size:20px; line-height:1;}
   .contenido-item .info{flex:1; min-width:0;}
   .contenido-item .info strong{display:block; font-size:14px; font-weight:500;}
@@ -212,7 +205,6 @@
   .filter-item label{display:block; font-size:10.5px; font-weight:500; color:var(--rose-deep); text-transform:uppercase; letter-spacing:.16em; margin-bottom:6px;}
   .filter-count{font-size:12px; color:var(--ink-soft); font-style:italic; margin-top:8px;}
   th.sortable{cursor:pointer; user-select:none;}
-  th.sortable:hover{background:var(--rose-soft);}
   .course-history{border:1px solid var(--line); padding:16px; margin-bottom:10px; background:var(--cream);}
 
 .clases-grid{
@@ -284,6 +276,21 @@
     .form-panel{width:100%;}
     .section-head h1{font-size:26px;}
     .login-box img{width:180px;}
+  }
+
+  /* Botones: sin doble toque en celulares */
+  button, a{touch-action:manipulation; -webkit-tap-highlight-color:transparent;}
+  /* Efectos al pasar el mouse: solo en computadoras con mouse */
+  @media (hover:hover) and (pointer:fine){
+    .nav-btn:hover{background:var(--rose-soft); color:var(--ink);}
+    .logout:hover{color:var(--ink);}
+    .btn-primary:hover{background:var(--rose-deep);}
+    .btn-secondary:hover{border-color:var(--rose); background:var(--rose-soft);}
+    .btn-danger:hover{border-color:var(--error); background:#FBEFED;}
+    .btn-success:hover{background:#E8F0E5; border-color:#4F7942; color:#4F7942;}
+    tr:hover td{background:#FDFAF8;}
+    .contenido-item:hover{border-color:var(--rose);}
+    th.sortable:hover{background:var(--rose-soft);}
   }
 </style>
 </head>
@@ -477,6 +484,10 @@ async function doLogin() {
     errorEl.textContent = 'No se pudo conectar con el servidor: ' + e.message;
   }
 }
+// Ingresar apretando Enter
+['login-user', 'login-pass'].forEach(id => {
+  document.getElementById(id).addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
+});
 function logout() {
   sessionStorage.removeItem('panel_token');
   location.reload();
@@ -997,7 +1008,6 @@ const FORM_DEFS = {
       {name:'Imagen_URL', label:'Imagen de portada', type:'image'},
       {name:'Fecha_Inicio_Publicacion', label:'Fecha de inicio de publicación', type:'date'},
       {name:'Fecha_Fin_Publicacion', label:'Fecha de fin de publicación', type:'date'},
-      {name:'Puntaje_Minimo_Aprobacion', label:'Puntaje mínimo de aprobación', type:'number'},
       {name:'Duracion', label:'Duración (ej: 40 hs)', type:'text'},
       {name:'Precio_ARS', label:'Precio en ARS', type:'number'},
       {name:'Precio_USD', label:'Precio en USD', type:'number'},
