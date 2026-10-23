@@ -405,7 +405,8 @@
           <th class="sortable" onclick="ordenarInscripciones('alumno')">Alumno ↕</th>
           <th class="sortable" onclick="ordenarInscripciones('curso')">Curso ↕</th>
           <th class="sortable" onclick="ordenarInscripciones('fecha')">Fecha de alta ↕</th>
-          <th class="sortable" onclick="ordenarInscripciones('habilitado')">Habilitado ↕</th><th></th>
+          <th class="sortable" onclick="ordenarInscripciones('habilitado')">Habilitado ↕</th>
+          <th class="sortable" onclick="ordenarInscripciones('avance')">Avance ↕</th><th></th>
         </tr></thead><tbody id="tbody-inscripciones"></tbody></table>
       </section>
       <section id="tab-preguntas" style="display:none">
@@ -450,7 +451,7 @@
 <script>
 const API_URL = 'https://script.google.com/macros/s/AKfycbzyGiSnozdfWIIVSy1PY25WqgGS1l8MSssblAv3diG31t_TOCeap_YO-jfeSg7TIY2Q/exec';
 
-let DATA = { cursos: [], clases: [], materiales: [], alumnos: [], inscripciones: [], egresados: [], alumnosConCursos: [], preguntas: [] };
+let DATA = { cursos: [], clases: [], materiales: [], alumnos: [], inscripciones: [], egresados: [], alumnosConCursos: [], preguntas: [], avance: [] };
 let currentTab = 'cursos';
 let cursoSeleccionadoClases = null;
 
@@ -568,11 +569,12 @@ if (getToken()) {
 
 async function loadAll() {
   try {
-    const [cursos, clases, materiales, alumnos, inscripciones, egresados, alumnosConCursos, preguntas] = await Promise.all([
+    const [cursos, clases, materiales, alumnos, inscripciones, egresados, alumnosConCursos, preguntas, avance] = await Promise.all([
       api('getCursos', {}), api('getClases', {}), api('getMateriales', {}),
       api('getAlumnos', {}), api('getInscripciones', {}), api('getEgresados', {}),
-      api('getAlumnosConCursos', {}), api('getPreguntas', {})
+      api('getAlumnosConCursos', {}), api('getPreguntas', {}), api('getAvance', {}).catch(() => [])
     ]);
+    DATA.avance = Array.isArray(avance) ? avance : [];
     DATA.preguntas = preguntas;
     DATA.cursos = cursos; DATA.clases = clases; DATA.materiales = materiales;
     DATA.alumnos = alumnos; DATA.inscripciones = inscripciones;
@@ -957,11 +959,28 @@ function ordenarInscripciones(campo){ if(inscSort.campo===campo)inscSort.dir*=-1
 function renderInscripciones() {
   const tbody=document.getElementById('tbody-inscripciones'); const fa=document.getElementById('filtro-insc-alumno')?.value||''; const fc=document.getElementById('filtro-insc-curso')?.value||'';
   let arr=DATA.inscripciones.filter(i=>(!fa||String(i.ID_Alumno)===fa)&&(!fc||String(i.ID_Curso)===fc));
-  const val=(i,c)=>c==='alumno'?alumnoNombre(i.ID_Alumno):c==='curso'?cursoNombre(i.ID_Curso):c==='fecha'?new Date(i.Fecha_Alta).getTime()||0:String(i.Habilitado||'');
+  const val=(i,c)=>c==='alumno'?alumnoNombre(i.ID_Alumno):c==='curso'?cursoNombre(i.ID_Curso):c==='fecha'?new Date(i.Fecha_Alta).getTime()||0:c==='avance'?avanceDe(i).pct:String(i.Habilitado||'');
   arr.sort((a,b)=>{const A=val(a,inscSort.campo),B=val(b,inscSort.campo);return (typeof A==='number'?A-B:String(A).localeCompare(String(B),'es'))*inscSort.dir;});
-  tbody.innerHTML=arr.length?arr.map(i=>`<tr><td>${alumnoNombre(i.ID_Alumno)}</td><td>${cursoNombre(i.ID_Curso)}</td><td>${esc(formatearFechaAdmin(i.Fecha_Alta))}</td><td>${esc(i.Habilitado)}</td><td class="actions"><button class="btn btn-secondary btn-small" onclick="openForm('inscripcion', ${i._row})">Editar</button><button class="btn btn-danger" onclick="removeItem('Inscripción','inscripciones',${i._row})">Borrar</button></td></tr>`).join(''):emptyRow(5,'No se encontraron inscripciones.');
+  tbody.innerHTML=arr.length?arr.map(i=>`<tr><td>${alumnoNombre(i.ID_Alumno)}</td><td>${cursoNombre(i.ID_Curso)}</td><td>${esc(formatearFechaAdmin(i.Fecha_Alta))}</td><td>${esc(i.Habilitado)}</td><td>${celdaAvance(i)}</td><td class="actions"><button class="btn btn-secondary btn-small" onclick="openForm('inscripcion', ${i._row})">Editar</button><button class="btn btn-danger" onclick="removeItem('Inscripción','inscripciones',${i._row})">Borrar</button></td></tr>`).join(''):emptyRow(6,'No se encontraron inscripciones.');
   const c=document.getElementById('contador-inscripciones');if(c)c.textContent=`${arr.length} de ${DATA.inscripciones.length} inscripciones.`;
 }
+/* Avance del alumno en un curso (sale de la hoja Avance) */
+function avanceDe(insc) {
+  const totalClases = DATA.clases.filter(c => String(c.ID_Curso) === String(insc.ID_Curso)).length;
+  const r = (DATA.avance || []).find(a => String(a.ID_Alumno) === String(insc.ID_Alumno).trim() && String(a.ID_Curso) === String(insc.ID_Curso));
+  const hechas = r ? Math.min(r.Completadas, totalClases) : 0;
+  return { hechas, total: totalClases, pct: totalClases ? Math.round(hechas / totalClases * 100) : 0, ultima: r ? r.Ultima_Actividad : '' };
+}
+function celdaAvance(insc) {
+  const a = avanceDe(insc);
+  if (!a.total) return '<span style="color:var(--ink-soft)">—</span>';
+  const ultima = a.ultima ? `Última actividad: ${esc(formatearFechaAdmin(String(a.ultima).replace(' ', 'T')))}` : 'Todavía no empezó';
+  return `<div title="${ultima}" style="min-width:120px">
+    <div style="height:5px;background:#EDE4DE;border-radius:3px;overflow:hidden"><span style="display:block;height:100%;width:${a.pct}%;background:${a.pct === 100 ? '#5E8C61' : '#C98F8A'}"></span></div>
+    <small style="display:block;margin-top:4px;color:var(--ink-soft);font-size:12px">${a.pct}% · ${a.hechas}/${a.total} clases</small>
+  </div>`;
+}
+
 function renderCertificados() {
   const tbody=document.getElementById('tbody-certificados'); if(!tbody)return; const fa=document.getElementById('filtro-cert-alumno')?.value||''; const fc=document.getElementById('filtro-cert-curso')?.value||''; const arr=DATA.egresados.filter(e=>(!fa||String(e.Nombre_Alumno)===fa)&&(!fc||String(e.Curso)===fc));
   if(!arr.length) tbody.innerHTML=emptyRow(7,DATA.egresados.length?'No se encontraron certificados.':'Todavía no hay certificados cargados.'); else tbody.innerHTML=arr.map(e=>{const estado=String(e.Estado||'Pendiente').trim();const pdf=e.URL_PDF?`<a href="${esc(e.URL_PDF)}" target="_blank" rel="noopener" class="btn btn-success">Ver PDF</a>`:'—';return `<tr><td>${esc(e.Certificado)}</td><td>${esc(e.Nombre_Alumno)}</td><td>${esc(e.Curso)}</td><td>${esc(e.Tipo)}</td><td><span class="badge ${estado.toLowerCase()}">${esc(estado)}</span></td><td>${pdf}</td><td class="actions"><button class="btn btn-secondary btn-small" onclick="enviarPorMail(${e._row})">Enviar</button><button class="btn btn-secondary btn-small" onclick="openFormEgresadoEditar(${e._row})">Editar</button><button class="btn btn-danger" onclick="removeItem('Egresado','egresados',${e._row})">Borrar</button></td></tr>`;}).join('');
