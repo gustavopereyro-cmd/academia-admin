@@ -186,6 +186,28 @@
   .toast.show{display:block; opacity:1; transform:translateX(-50%) translateY(0);}
   .toast.error{background:var(--error);}
 
+  /* ---------- Operación en curso: bloquea la pantalla para no apretar dos veces ---------- */
+  .ocupado{
+    position:fixed; inset:0; z-index:9999; display:none;
+    align-items:center; justify-content:center;
+    background:rgba(253,251,249,.72); backdrop-filter:blur(2px); cursor:wait;
+  }
+  .ocupado.visible{display:flex;}
+  .ocupado-caja{
+    display:flex; align-items:center; gap:16px;
+    background:#fff; border:1px solid #EDE4DE; border-top:3px solid #E8B4B0;
+    padding:22px 28px; border-radius:2px; box-shadow:0 24px 50px -24px rgba(74,68,68,.35);
+    font-size:15px; color:#4A4444; max-width:90vw;
+  }
+  .spinner{
+    width:24px; height:24px; border-radius:50%; flex-shrink:0;
+    border:3px solid #F5D5D0; border-top-color:#C98F8A;
+    animation:girar .8s linear infinite;
+  }
+  @keyframes girar{to{transform:rotate(360deg);}}
+  .upload-status.ok{color:#5E8C61; font-weight:500;}
+  .upload-status.err{color:var(--error);}
+
   .contenido-item{
     display:flex; align-items:center; gap:14px;
     padding:14px 16px; border:1px solid var(--line);
@@ -421,6 +443,9 @@
 <div class="form-panel" id="form-panel" style="display:none"></div>
 
 <div class="toast" id="toast"></div>
+<div class="ocupado" id="ocupado" role="status" aria-live="polite">
+  <div class="ocupado-caja"><div class="spinner"></div><span id="ocupado-texto">Guardando…</span></div>
+</div>
 
 <script>
 const API_URL = 'https://script.google.com/macros/s/AKfycbzyGiSnozdfWIIVSy1PY25WqgGS1l8MSssblAv3diG31t_TOCeap_YO-jfeSg7TIY2Q/exec';
@@ -440,12 +465,43 @@ function sesionVencida() {
   document.getElementById('login-error').textContent = 'Tu sesión venció. Volvé a ingresar.';
 }
 
+/* ---------- Una operación por vez, con aviso en pantalla ---------- */
+let operacionEnCurso = false;
+
+function textoOperacion(action) {
+  if (action === 'uploadFile') return 'Subiendo archivo… no cierres esta ventana';
+  if (action === 'emitirPendientes') return 'Emitiendo certificados… puede tardar unos segundos';
+  if (/^add/.test(action)) return 'Guardando…';
+  if (/^update/.test(action)) return 'Guardando cambios…';
+  if (/^delete/.test(action)) return 'Borrando…';
+  return 'Procesando…';
+}
+function mostrarOcupado(texto) {
+  document.getElementById('ocupado-texto').textContent = texto;
+  document.getElementById('ocupado').classList.add('visible');
+}
+function ocultarOcupado() {
+  document.getElementById('ocupado').classList.remove('visible');
+}
+
 async function api(action, payload) {
-  const res = await fetch(API_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-    body: JSON.stringify({ action, token: getToken(), ...payload })
-  });
+  // Las acciones que guardan, suben o borran bloquean la pantalla hasta terminar
+  const esEscritura = action !== 'login' && !/^get/.test(action);
+  if (esEscritura) {
+    if (operacionEnCurso) throw new Error('Esperá a que termine la operación anterior.');
+    operacionEnCurso = true;
+    mostrarOcupado(textoOperacion(action));
+  }
+  let res;
+  try {
+    res = await fetch(API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ action, token: getToken(), ...payload })
+    });
+  } finally {
+    if (esEscritura) { operacionEnCurso = false; ocultarOcupado(); }
+  }
   const json = await res.json();
   if (json && json.sesionInvalida) {
     sesionVencida();
@@ -1320,23 +1376,30 @@ async function handleUpload(fieldId, input, isImage) {
   const file = input.files[0];
   if (!file) return;
   const statusEl = document.getElementById(fieldId + '_status');
-  statusEl.textContent = 'Subiendo...';
+  statusEl.className = 'upload-status';
+  statusEl.textContent = 'Subiendo ' + file.name + '…';
   try {
     const base64Data = await fileToBase64(file);
     const result = await api('uploadFile', { fileName: file.name, mimeType: file.type, fileData: base64Data });
     if (result.success) {
       document.getElementById(fieldId).value = result.url;
-      statusEl.textContent = 'Archivo cargado correctamente.';
+      statusEl.className = 'upload-status ok';
+      statusEl.textContent = '✓ ' + file.name + ' subido. Ahora tocá Guardar.';
+      showToast('Archivo subido. Falta tocar Guardar.');
       if (isImage) {
         const prev = document.getElementById(fieldId + '_preview');
         prev.src = result.url;
         prev.style.display = 'inline-block';
       }
     } else {
+      statusEl.className = 'upload-status err';
       statusEl.textContent = 'Error al subir: ' + (result.error || 'desconocido');
     }
   } catch (e) {
+    statusEl.className = 'upload-status err';
     statusEl.textContent = 'Error al subir: ' + e.message;
+  } finally {
+    input.value = '';   // permite volver a elegir el mismo archivo si hizo falta
   }
 }
 
@@ -1588,76 +1651,4 @@ async function openFormEgresadoEditar(row) {
       </div>
       <div class="field">
         <label>Fecha (mes y año)</label>
-        <input type="text" id="ef_Fecha" value="${esc(eg.Fecha || '')}">
-      </div>
-      <div class="field">
-        <label>Acta</label>
-        <input type="text" id="ef_Acta" value="${esc(eg.Acta || '')}">
-      </div>
-      <div class="field">
-        <label>Certificado</label>
-        <input type="text" id="ef_Certificado" value="${esc(eg.Certificado || '')}">
-      </div>
-      <div class="field">
-        <label>Estado</label>
-        <select id="ef_Estado">
-          <option value="Pendiente" ${eg.Estado === 'Pendiente' ? 'selected' : ''}>Pendiente</option>
-          <option value="Emitido" ${eg.Estado === 'Emitido' ? 'selected' : ''}>Emitido</option>
-          <option value="Enviado" ${eg.Estado === 'Enviado' ? 'selected' : ''}>Enviado</option>
-        </select>
-      </div>
-      <div class="field">
-        <label>URL del PDF</label>
-        <input type="text" id="ef_URL_PDF" value="${esc(eg.URL_PDF || '')}" readonly>
-        <div class="field-hint">Se genera automáticamente al emitir el certificado.</div>
-      </div>
-    </div>
-    <div class="form-actions">
-      <button class="btn btn-primary" onclick="submitEgresadoEditar(${row})">Guardar cambios</button>
-      <button class="btn btn-secondary" onclick="closeForm()">Cancelar</button>
-    </div>
-  `;
-
-  document.getElementById('form-panel').innerHTML = html;
-  document.getElementById('form-panel').style.display = 'block';
-  document.getElementById('overlay').style.display = 'block';
-}
-
-async function submitEgresadoEditar(row) {
-  const dni = String(document.getElementById('ef_DNI').value || '').replace(/\./g, '').trim();
-  const nombre = document.getElementById('ef_Nombre_Alumno').value.trim();
-  const curso = document.getElementById('ef_Curso').value.trim();
-  const tipo = document.getElementById('ef_Tipo').value;
-  const fecha = document.getElementById('ef_Fecha').value.trim();
-  const acta = document.getElementById('ef_Acta').value.trim();
-  const certificado = document.getElementById('ef_Certificado').value.trim();
-  const estado = document.getElementById('ef_Estado').value;
-
-  if (!dni || !curso || !acta || !certificado) {
-    showToast('Faltan campos obligatorios (DNI, Curso, Acta o Certificado).', true);
-    return;
-  }
-
-  const data = {
-    Fecha: fecha,
-    Nombre_Alumno: nombre,
-    Curso: curso,
-    DNI: dni,
-    Acta: acta,
-    Certificado: certificado,
-    Tipo: tipo,
-    Estado: estado
-  };
-
-  try {
-    await api('updateEgresado', { row, expect: expectDe('egresados', row), data });
-    showToast('Egresado actualizado correctamente.');
-    closeForm();
-    await loadAll();
-  } catch (e) {
-    showToast('Error al guardar: ' + e.message, true);
-  }
-}
-</script>
-</body>
-</html>
+       
