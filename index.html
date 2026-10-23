@@ -1651,4 +1651,76 @@ async function openFormEgresadoEditar(row) {
       </div>
       <div class="field">
         <label>Fecha (mes y año)</label>
-       
+        <input type="text" id="ef_Fecha" value="${esc(eg.Fecha || '')}">
+      </div>
+      <div class="field">
+        <label>Acta</label>
+        <input type="text" id="ef_Acta" value="${esc(eg.Acta || '')}">
+      </div>
+      <div class="field">
+        <label>Certificado</label>
+        <input type="text" id="ef_Certificado" value="${esc(eg.Certificado || '')}">
+      </div>
+      <div class="field">
+        <label>Estado</label>
+        <select id="ef_Estado">
+          <option value="Pendiente" ${eg.Estado === 'Pendiente' ? 'selected' : ''}>Pendiente</option>
+          <option value="Emitido" ${eg.Estado === 'Emitido' ? 'selected' : ''}>Emitido</option>
+          <option value="Enviado" ${eg.Estado === 'Enviado' ? 'selected' : ''}>Enviado</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>URL del PDF</label>
+        <input type="text" id="ef_URL_PDF" value="${esc(eg.URL_PDF || '')}" readonly>
+        <div class="field-hint">Se genera automáticamente al emitir el certificado.</div>
+      </div>
+    </div>
+    <div class="form-actions">
+      <button class="btn btn-primary" onclick="submitEgresadoEditar(${row})">Guardar cambios</button>
+      <button class="btn btn-secondary" onclick="closeForm()">Cancelar</button>
+    </div>
+  `;
+
+  document.getElementById('form-panel').innerHTML = html;
+  document.getElementById('form-panel').style.display = 'block';
+  document.getElementById('overlay').style.display = 'block';
+}
+
+async function submitEgresadoEditar(row) {
+  const dni = String(document.getElementById('ef_DNI').value || '').replace(/\./g, '').trim();
+  const nombre = document.getElementById('ef_Nombre_Alumno').value.trim();
+  const curso = document.getElementById('ef_Curso').value.trim();
+  const tipo = document.getElementById('ef_Tipo').value;
+  const fecha = document.getElementById('ef_Fecha').value.trim();
+  const acta = document.getElementById('ef_Acta').value.trim();
+  const certificado = document.getElementById('ef_Certificado').value.trim();
+  const estado = document.getElementById('ef_Estado').value;
+
+  if (!dni || !curso || !acta || !certificado) {
+    showToast('Faltan campos obligatorios (DNI, Curso, Acta o Certificado).', true);
+    return;
+  }
+
+  const data = {
+    Fecha: fecha,
+    Nombre_Alumno: nombre,
+    Curso: curso,
+    DNI: dni,
+    Acta: acta,
+    Certificado: certificado,
+    Tipo: tipo,
+    Estado: estado
+  };
+
+  try {
+    await api('updateEgresado', { row, expect: expectDe('egresados', row), data });
+    showToast('Egresado actualizado correctamente.');
+    closeForm();
+    await loadAll();
+  } catch (e) {
+    showToast('Error al guardar: ' + e.message, true);
+  }
+}
+</script>
+</body>
+</html>
