@@ -507,6 +507,13 @@ function ocultarOcupado() {
   document.getElementById('ocupado').classList.remove('visible');
 }
 
+// Tiempo máximo de espera de cada operación (después avisa en vez de quedar trabado)
+function tiempoMaximo(action) {
+  if (action === 'emitirPendientes') return 5 * 60 * 1000;   // 5 minutos
+  if (action === 'uploadFile') return 3 * 60 * 1000;         // 3 minutos
+  return 60 * 1000;                                          // 1 minuto
+}
+
 async function api(action, payload) {
   // Las acciones que guardan, suben o borran bloquean la pantalla hasta terminar
   const esEscritura = action !== 'login' && !/^get/.test(action);
@@ -515,17 +522,35 @@ async function api(action, payload) {
     operacionEnCurso = true;
     mostrarOcupado(textoOperacion(action));
   }
-  let res;
+  const control = new AbortController();
+  const corte = setTimeout(() => control.abort(), tiempoMaximo(action));
+  const aviso = esEscritura ? setTimeout(() => {
+    document.getElementById('ocupado-texto').textContent =
+      textoOperacion(action) + ' Está tardando más de lo normal, esperá un poco más…';
+  }, 15000) : null;
+  let json;
   try {
-    res = await fetch(API_URL, {
+    const res = await fetch(API_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify({ action, token: getToken(), ...payload })
+      body: JSON.stringify({ action, token: getToken(), ...payload }),
+      signal: control.signal
     });
+    const texto = await res.text();
+    try { json = JSON.parse(texto); }
+    catch (e) { throw new Error('Google respondió con un error inesperado. Probá de nuevo en unos minutos.'); }
+  } catch (e) {
+    if (e.name === 'AbortError') {
+      if (esEscritura) setTimeout(loadAll, 0);   // refresca para ver si se llegó a guardar
+      throw new Error('Google no respondió a tiempo. Revisá en la lista si el cambio se guardó antes de volver a intentar.');
+    }
+    if (e instanceof TypeError) throw new Error('No hay conexión con Google. Revisá tu internet y probá de nuevo.');
+    throw e;
   } finally {
+    clearTimeout(corte);
+    if (aviso) clearTimeout(aviso);
     if (esEscritura) { operacionEnCurso = false; ocultarOcupado(); }
   }
-  const json = await res.json();
   if (json && json.sesionInvalida) {
     sesionVencida();
     throw new Error('Tu sesión venció. Volvé a ingresar.');
