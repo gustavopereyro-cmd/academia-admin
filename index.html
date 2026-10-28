@@ -208,6 +208,27 @@
   .upload-status.ok{color:#5E8C61; font-weight:500;}
   .upload-status.err{color:var(--error);}
 
+  /* ---------- Elegir PDF: Drive / compu / link ---------- */
+  .pdf-tabs{display:flex; gap:6px; flex-wrap:wrap; margin:6px 0 12px;}
+  .pdf-tab{
+    border:1px solid #EDE4DE; background:#fff; color:#4A4444; cursor:pointer;
+    padding:8px 12px; border-radius:4px; font-size:13px; font-family:inherit;
+  }
+  .pdf-tab.activa{background:#4A4444; border-color:#4A4444; color:#fff;}
+  .pdf-panel{border:1px solid #EDE4DE; border-radius:4px; padding:12px; background:#FDFBF9;}
+  .pdf-fila{display:flex; gap:8px;}
+  .pdf-fila input{flex:1; min-width:0;}
+  .pdf-resultados{margin-top:10px; max-height:260px; overflow-y:auto;}
+  .pdf-res{
+    display:flex; align-items:center; gap:10px; width:100%; text-align:left; cursor:pointer;
+    background:#fff; border:1px solid #EDE4DE; border-radius:4px; padding:9px 12px; margin-bottom:6px;
+    font-family:inherit; color:#4A4444;
+  }
+  .pdf-res:hover{border-color:#E8B4B0; background:#FFF8F6;}
+  .pdf-res strong{display:block; font-weight:500; font-size:13.5px;}
+  .pdf-res small{color:#8A8280; font-size:12px;}
+  .pdf-vacio{color:#8A8280; font-size:13px; font-style:italic; padding:6px 2px;}
+
   .contenido-item{
     display:flex; align-items:center; gap:14px;
     padding:14px 16px; border:1px solid var(--line);
@@ -471,6 +492,7 @@ let operacionEnCurso = false;
 
 function textoOperacion(action) {
   if (action === 'uploadFile') return 'Subiendo archivo… no cierres esta ventana';
+  if (action === 'usarPdfDrive') return 'Preparando el PDF de Drive…';
   if (action === 'emitirPendientes') return 'Emitiendo certificados… puede tardar unos segundos';
   if (/^add/.test(action)) return 'Guardando…';
   if (/^update/.test(action)) return 'Guardando cambios…';
@@ -1327,9 +1349,83 @@ function renderCampoLinkContenido(valorExistente) {
       <div class="field">
         <label>Archivo PDF</label>
         <input type="hidden" id="cf_Link" value="${esc(val)}">
-        <input type="file" id="cf_Link_file" accept="application/pdf" onchange="handleUpload('cf_Link', this, false)">
-        <div class="upload-status" id="cf_Link_status">${val ? 'Archivo cargado.' : ''}</div>
+        <div class="upload-status ${val ? 'ok' : ''}" id="cf_Link_status">${val ? `✓ PDF cargado. <a href="${esc(val)}" target="_blank" rel="noopener">Ver</a>` : 'Todavía no elegiste un PDF.'}</div>
+        <div class="pdf-tabs">
+          <button type="button" class="pdf-tab activa" data-pdf="drive" onclick="tabPdf('drive')">📁 Buscar en mi Drive</button>
+          <button type="button" class="pdf-tab" data-pdf="compu" onclick="tabPdf('compu')">💻 Subir desde mi compu</button>
+          <button type="button" class="pdf-tab" data-pdf="link" onclick="tabPdf('link')">🔗 Pegar link de Drive</button>
+        </div>
+        <div class="pdf-panel" id="pdf-panel-drive">
+          <div class="pdf-fila">
+            <input type="text" id="pdf-buscar" placeholder="Escribí parte del nombre del PDF…" autocomplete="off"
+              onkeydown="if(event.key==='Enter'){event.preventDefault();buscarPdfDrive();}">
+            <button type="button" class="btn btn-secondary btn-small" onclick="buscarPdfDrive()">Buscar</button>
+          </div>
+          <div class="pdf-resultados" id="pdf-resultados"></div>
+        </div>
+        <div class="pdf-panel" id="pdf-panel-compu" style="display:none">
+          <input type="file" id="cf_Link_file" accept="application/pdf" onchange="handleUpload('cf_Link', this, false)">
+          <div class="field-hint">Se guarda en tu Drive, en la carpeta "Academia - Materiales PDF".</div>
+        </div>
+        <div class="pdf-panel" id="pdf-panel-link" style="display:none">
+          <div class="pdf-fila">
+            <input type="text" id="pdf-link" placeholder="https://drive.google.com/file/d/…">
+            <button type="button" class="btn btn-secondary btn-small" onclick="usarPdfDrive(document.getElementById('pdf-link').value)">Usar</button>
+          </div>
+          <div class="field-hint">En Drive: clic derecho sobre el PDF → Compartir → Copiar vínculo.</div>
+        </div>
       </div>`;
+  }
+}
+
+/* ---------- Elegir un PDF que ya está en Google Drive ---------- */
+
+function tabPdf(cual) {
+  ['drive', 'compu', 'link'].forEach(t => {
+    const panel = document.getElementById('pdf-panel-' + t);
+    if (panel) panel.style.display = t === cual ? 'block' : 'none';
+  });
+  document.querySelectorAll('.pdf-tab').forEach(b => b.classList.toggle('activa', b.dataset.pdf === cual));
+}
+
+async function buscarPdfDrive() {
+  const q = document.getElementById('pdf-buscar').value.trim();
+  const cont = document.getElementById('pdf-resultados');
+  if (q.length < 2) { cont.innerHTML = '<div class="pdf-vacio">Escribí al menos 2 letras.</div>'; return; }
+  cont.innerHTML = '<div class="pdf-vacio">Buscando en tu Drive…</div>';
+  try {
+    const lista = await api('getPdfDrive', { q });
+    if (!Array.isArray(lista) || !lista.length) {
+      cont.innerHTML = '<div class="pdf-vacio">No encontré PDF con ese nombre. Probá con otra palabra.</div>';
+      return;
+    }
+    cont.innerHTML = lista.map(f => `
+      <button type="button" class="pdf-res" data-id="${esc(f.id)}">
+        <span style="font-size:20px">📄</span>
+        <span><strong>${esc(f.nombre)}</strong><small>${f.carpeta ? '📁 ' + esc(f.carpeta) + ' · ' : ''}modificado ${esc(f.modificado)}</small></span>
+      </button>`).join('') + (lista.length >= 25 ? '<div class="pdf-vacio">Se muestran los primeros 25. Escribí algo más específico para achicar la lista.</div>' : '');
+    cont.querySelectorAll('.pdf-res').forEach(b => b.addEventListener('click', () => usarPdfDrive(b.dataset.id)));
+  } catch (e) {
+    cont.innerHTML = '<div class="pdf-vacio" style="color:var(--error)">No se pudo buscar: ' + esc(e.message) + '</div>';
+  }
+}
+
+async function usarPdfDrive(idOLink) {
+  if (!String(idOLink || '').trim()) { showToast('Pegá el link del PDF de Drive.', true); return; }
+  const statusEl = document.getElementById('cf_Link_status');
+  try {
+    const r = await api('usarPdfDrive', { link: idOLink });
+    document.getElementById('cf_Link').value = r.url;
+    // Si el nombre del contenido está vacío, se completa con el nombre del archivo
+    const nombreEl = document.getElementById('cf_Nombre');
+    if (nombreEl && !nombreEl.value.trim()) nombreEl.value = String(r.nombre || '').replace(/\.pdf$/i, '');
+    statusEl.className = 'upload-status ' + (r.aviso ? 'err' : 'ok');
+    statusEl.innerHTML = `✓ Elegiste <b>${esc(r.nombre)}</b>. <a href="${esc(r.url)}" target="_blank" rel="noopener">Ver</a> · Ahora tocá Guardar.` +
+      (r.aviso ? `<br>${esc(r.aviso)}` : '');
+    showToast('PDF elegido. Falta tocar Guardar.');
+  } catch (e) {
+    statusEl.className = 'upload-status err';
+    statusEl.textContent = e.message;
   }
 }
 
