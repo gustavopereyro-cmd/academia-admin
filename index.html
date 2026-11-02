@@ -683,7 +683,9 @@ function renderCursos() {
   if (!DATA.cursos.length) { tbody.innerHTML = emptyRow(8, 'Todavía no cargaste ningún curso.'); return; }
   tbody.innerHTML = DATA.cursos.map(c => {
     const cerrado = cursoCerrado(c);
-    const badge = cerrado ? '<span class="badge cerrado">Cerrado</span>' : '';
+    const destacado = String(c.Destacado || '').trim().toLowerCase() === 'si';
+    const badge = (cerrado ? '<span class="badge cerrado">Cerrado</span>' : '') +
+      (destacado ? ` <span class="badge" title="Aparece en Novedades" style="background:#FBEDEA;color:#9A6560">★ Novedad${c.Etiqueta ? ' · ' + esc(c.Etiqueta) : ''}</span>` : '');
     const botonEstado = cerrado
       ? `<button class="btn btn-secondary btn-small" onclick="reabrirCurso(${c._row})">Reabrir</button>`
       : `<button class="btn btn-secondary btn-small" onclick="cerrarCurso(${c._row})">Cerrar</button>`;
@@ -1161,7 +1163,10 @@ const FORM_DEFS = {
       {name:'Precio_ARS', label:'Precio en ARS', type:'number'},
       {name:'Precio_USD', label:'Precio en USD', type:'number'},
       {name:'Descripcion_Larga', label:'Descripción larga', type:'textarea'},
-      {name:'Requisitos', label:'Requisitos', type:'textarea', hint:'Uno por línea. Ej: Ser profesional.'}
+      {name:'Requisitos', label:'Requisitos', type:'textarea', hint:'Uno por línea. Ej: Ser profesional.'},
+      {name:'Destacado', label:'Mostrar en Novedades', type:'select-fixed', options:['No', 'Si'], hint:'Si elegís Si, el curso aparece en la fila de Novedades del catálogo.'},
+      {name:'Etiqueta', label:'Etiqueta de novedad', type:'select-fixed', options:['', 'Nuevo', 'Inscripciones abiertas', 'Últimos lugares', 'Próximamente']},
+      {name:'Fecha_Inicio_Curso', label:'Fecha de inicio del curso', type:'date', hint:'Se muestra como “Comienza el …”. Distinta de las fechas de publicación.'}
     ]
   },
   clase: {
@@ -1249,13 +1254,18 @@ function renderField(f, existing) {
   }
   if (f.type === 'select-fixed') {
     const options = f.options.map(o => `<option value="${o}" ${o===String(val)?'selected':''}>${o || '— Sin especificar —'}</option>`).join('');
-    return `<div class="field"><label>${f.label}</label><select id="${id}">${options}</select></div>`;
+    return `<div class="field"><label>${f.label}</label><select id="${id}">${options}</select>${f.hint ? `<div class="field-hint">${f.hint}</div>` : ''}</div>`;
   }
   if (f.type === 'textarea') {
     return `<div class="field"><label>${f.label}</label><textarea id="${id}">${esc(val)}</textarea>${f.hint ? `<div class="field-hint">${f.hint}</div>` : ''}</div>`;
   }
   if (f.type === 'date') {
-    return `<div class="field"><label>${f.label}</label><input type="date" id="${id}" value="${esc(val)}"></div>`;
+    // La planilla devuelve fechas completas: el campo necesita AAAA-MM-DD
+    if (val && !/^\d{4}-\d{2}-\d{2}$/.test(String(val))) {
+      const d = new Date(val);
+      val = isNaN(d.getTime()) ? '' : d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+    }
+    return `<div class="field"><label>${f.label}</label><input type="date" id="${id}" value="${esc(val)}">${f.hint ? `<div class="field-hint">${f.hint}</div>` : ''}</div>`;
   }
   if (f.type === 'number') {
     return `<div class="field"><label>${f.label}</label><input type="number" id="${id}" value="${esc(val)}"></div>`;
