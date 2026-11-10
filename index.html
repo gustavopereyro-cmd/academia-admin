@@ -320,6 +320,41 @@
     .login-box img{width:180px;}
   }
 
+  /* ---------- Exámenes ---------- */
+  .ex-card{background:var(--card); border:1px solid var(--line); padding:24px 26px; margin-bottom:22px; box-shadow:0 2px 20px -10px rgba(201,143,138,.18);}
+  .ex-card h3{font-size:22px; margin-bottom:4px;}
+  .ex-card .sub{color:var(--ink-soft); font-size:13px; margin:0 0 18px;}
+  .ex-config{display:grid; grid-template-columns:repeat(auto-fill,minmax(200px,1fr)); gap:4px 18px;}
+  .ex-config .ancho{grid-column:1 / -1;}
+  .ex-acciones{display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-top:6px;}
+  .ex-head{display:flex; justify-content:space-between; align-items:flex-start; gap:16px; flex-wrap:wrap; margin-bottom:22px;}
+  .ex-head h2{font-size:30px; line-height:1.1; margin-top:8px;}
+  .badge.publicado{background:#E8F0E5; color:#4F7942; border:1px solid #CFE0C7;}
+  .badge.borrador{background:#F7F2EE; color:#8A8280; border:1px solid #EDE4DE;}
+  .badge.aprobado{background:#E8F0E5; color:#4F7942; border:1px solid #CFE0C7;}
+  .badge.noaprobado{background:#FBEFED; color:#B3452C; border:1px solid #F0D5D0;}
+  .badge.encurso{background:#E5EDF0; color:#4A6E7A; border:1px solid #C7DCE3;}
+  .ex-preg{border:1px solid var(--line); background:var(--cream); padding:16px 18px; margin-bottom:10px; display:flex; gap:16px; align-items:flex-start;}
+  .ex-preg .num{font-family:'Cormorant Garamond',serif; font-size:22px; font-weight:600; color:var(--rose-deep); min-width:28px; line-height:1.2;}
+  .ex-preg .cuerpo{flex:1; min-width:0;}
+  .ex-preg .cuerpo strong{display:block; font-weight:500; font-size:14.5px; margin-bottom:8px; white-space:pre-wrap;}
+  .ex-preg ol{list-style:none; margin:0; padding:0; display:grid; gap:4px;}
+  .ex-preg li{font-size:13.5px; color:var(--ink-soft); padding:3px 0;}
+  .ex-preg li b{font-weight:500; color:var(--ink); margin-right:6px;}
+  .ex-preg li.ok{color:#3F6B3A; font-weight:500;}
+  .ex-preg li.ok::after{content:'  ✓ correcta'; font-size:11px; letter-spacing:.1em; text-transform:uppercase;}
+  .ex-preg .acciones{display:flex; gap:6px; flex-shrink:0;}
+  .ex-vacio{color:var(--ink-soft); font-style:italic; padding:18px 0;}
+  .opcion-fila{display:flex; align-items:center; gap:10px; margin-bottom:8px;}
+  .opcion-fila .letra{font-weight:500; width:18px; text-align:center;}
+  .opcion-fila input[type=radio]{width:20px; height:20px; flex-shrink:0; accent-color:#4F7942; cursor:pointer;}
+  .opcion-fila input[type=text]{flex:1; min-width:0;}
+  .form-section{margin:26px 0 14px; padding-top:16px; border-top:1px solid var(--line); font-family:'Cormorant Garamond',serif; font-size:19px; font-weight:600;}
+  .previa-preg{margin-bottom:20px;}
+  .previa-preg p{font-weight:500; margin:0 0 8px; white-space:pre-wrap;}
+  .previa-preg label{display:flex; gap:10px; align-items:center; padding:9px 12px; border:1px solid var(--line); margin-bottom:6px; cursor:pointer; font-size:14px;}
+  .previa-preg input{width:18px; height:18px; flex-shrink:0;}
+  .celda-sub{display:block; font-size:12px; color:var(--ink-soft); margin-top:4px;}
   /* Botones: sin doble toque en celulares */
   button, a{touch-action:manipulation; -webkit-tap-highlight-color:transparent;}
   /* Efectos al pasar el mouse: solo en computadoras con mouse */
@@ -365,6 +400,7 @@
       <h2>Mariana Barrera<small>Panel Admin</small></h2>
       <button class="nav-btn active" data-tab="cursos" onclick="switchTab('cursos')">Cursos</button>
       <button class="nav-btn" data-tab="clases" onclick="switchTab('clases')">Clases</button>
+      <button class="nav-btn" data-tab="examenes" onclick="switchTab('examenes')">Exámenes</button>
       <button class="nav-btn" data-tab="alumnos" onclick="switchTab('alumnos')">Alumnos</button>
       <button class="nav-btn" data-tab="inscripciones" onclick="switchTab('inscripciones')">Inscripciones</button>
       <button class="nav-btn" data-tab="certificados" onclick="switchTab('certificados')">Certificados</button>
@@ -395,6 +431,10 @@
   <div id="clases-container"></div>
 
 </section>
+
+      <section id="tab-examenes" style="display:none">
+        <div id="examenes-container"></div>
+      </section>
 
       <section id="tab-alumnos" style="display:none">
         <div class="section-head">
@@ -427,7 +467,8 @@
           <th class="sortable" onclick="ordenarInscripciones('curso')">Curso ↕</th>
           <th class="sortable" onclick="ordenarInscripciones('fecha')">Fecha de alta ↕</th>
           <th class="sortable" onclick="ordenarInscripciones('habilitado')">Habilitado ↕</th>
-          <th class="sortable" onclick="ordenarInscripciones('avance')">Avance ↕</th><th></th>
+          <th class="sortable" onclick="ordenarInscripciones('avance')">Avance ↕</th>
+          <th>Examen final</th><th>Práctico</th><th></th>
         </tr></thead><tbody id="tbody-inscripciones"></tbody></table>
       </section>
       <section id="tab-preguntas" style="display:none">
@@ -472,7 +513,8 @@
 <script>
 const API_URL = 'https://script.google.com/macros/s/AKfycbzyGiSnozdfWIIVSy1PY25WqgGS1l8MSssblAv3diG31t_TOCeap_YO-jfeSg7TIY2Q/exec';
 
-let DATA = { cursos: [], clases: [], materiales: [], alumnos: [], inscripciones: [], egresados: [], alumnosConCursos: [], preguntas: [], avance: [] };
+let DATA = { cursos: [], clases: [], materiales: [], alumnos: [], inscripciones: [], egresados: [], alumnosConCursos: [], preguntas: [], avance: [],
+  examenes: [], preguntasEx: [], resultadosEx: [] };
 let currentTab = 'cursos';
 let cursoSeleccionadoClases = null;
 
@@ -567,7 +609,7 @@ async function api(action, payload) {
 const CLAVES_FILA = {
   cursos: ['ID_Curso'], clases: ['ID_Clase'], materiales: ['ID_Material'],
   alumnos: ['ID_Alumno'], inscripciones: ['ID_Alumno', 'ID_Curso'], egresados: ['Certificado'],
-  preguntas: ['ID_Pregunta']
+  preguntas: ['ID_Pregunta'], examenes: ['ID_Examen'], preguntasEx: ['ID_PreguntaEx']
 };
 function expectDe(key, row) {
   const it = (DATA[key] || []).find(x => x._row === row);
@@ -616,11 +658,13 @@ if (getToken()) {
 
 async function loadAll() {
   try {
-    const [cursos, clases, materiales, alumnos, inscripciones, egresados, alumnosConCursos, preguntas, avance] = await Promise.all([
+    const [cursos, clases, materiales, alumnos, inscripciones, egresados, alumnosConCursos, preguntas, avance, examenes] = await Promise.all([
       api('getCursos', {}), api('getClases', {}), api('getMateriales', {}),
       api('getAlumnos', {}), api('getInscripciones', {}), api('getEgresados', {}),
-      api('getAlumnosConCursos', {}), api('getPreguntas', {}), api('getAvance', {}).catch(() => [])
+      api('getAlumnosConCursos', {}), api('getPreguntas', {}), api('getAvance', {}).catch(() => []),
+      api('getExamenes', {}).catch(() => null)
     ]);
+    guardarDatosExamenes(examenes);
     DATA.avance = Array.isArray(avance) ? avance : [];
     DATA.preguntas = preguntas;
     DATA.cursos = cursos; DATA.clases = clases; DATA.materiales = materiales;
@@ -666,13 +710,13 @@ function alumnoNombre(id) { const a = DATA.alumnos.find(x => String(x.ID_Alumno)
 
 function renderAll() {
   cargarFiltrosAdmin();
-  renderCursos(); renderClases(); renderAlumnos(); renderInscripciones(); renderCertificados(); renderPreguntas();
+  renderCursos(); renderClases(); renderAlumnos(); renderInscripciones(); renderCertificados(); renderPreguntas(); renderExamenes();
 }
 
 function switchTab(tab) {
   currentTab = tab;
   document.querySelectorAll('.nav-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
-  ['cursos','clases','alumnos','inscripciones','certificados','preguntas'].forEach(t => {
+  ['cursos','clases','examenes','alumnos','inscripciones','certificados','preguntas'].forEach(t => {
     const el = document.getElementById('tab-' + t);
     if (el) el.style.display = (t === tab) ? 'block' : 'none';
   });
@@ -1010,7 +1054,7 @@ function renderInscripciones() {
   let arr=DATA.inscripciones.filter(i=>(!fa||String(i.ID_Alumno)===fa)&&(!fc||String(i.ID_Curso)===fc));
   const val=(i,c)=>c==='alumno'?alumnoNombre(i.ID_Alumno):c==='curso'?cursoNombre(i.ID_Curso):c==='fecha'?new Date(i.Fecha_Alta).getTime()||0:c==='avance'?avanceDe(i).pct:String(i.Habilitado||'');
   arr.sort((a,b)=>{const A=val(a,inscSort.campo),B=val(b,inscSort.campo);return (typeof A==='number'?A-B:String(A).localeCompare(String(B),'es'))*inscSort.dir;});
-  tbody.innerHTML=arr.length?arr.map(i=>`<tr><td>${alumnoNombre(i.ID_Alumno)}</td><td>${cursoNombre(i.ID_Curso)}</td><td>${esc(formatearFechaAdmin(i.Fecha_Alta))}</td><td>${esc(i.Habilitado)}</td><td>${celdaAvance(i)}</td><td class="actions"><button class="btn btn-secondary btn-small" onclick="openForm('inscripcion', ${i._row})">Editar</button><button class="btn btn-danger" onclick="removeItem('Inscripción','inscripciones',${i._row})">Borrar</button></td></tr>`).join(''):emptyRow(6,'No se encontraron inscripciones.');
+  tbody.innerHTML=arr.length?arr.map(i=>`<tr><td>${alumnoNombre(i.ID_Alumno)}</td><td>${cursoNombre(i.ID_Curso)}</td><td>${esc(formatearFechaAdmin(i.Fecha_Alta))}</td><td>${esc(i.Habilitado)}</td><td>${celdaAvance(i)}</td><td>${celdaExamen(i)}</td><td>${celdaPractico(i)}</td><td class="actions"><button class="btn btn-secondary btn-small" onclick="openForm('inscripcion', ${i._row})">Editar</button><button class="btn btn-danger" onclick="removeItem('Inscripción','inscripciones',${i._row})">Borrar</button></td></tr>`).join(''):emptyRow(8,'No se encontraron inscripciones.');
   const c=document.getElementById('contador-inscripciones');if(c)c.textContent=`${arr.length} de ${DATA.inscripciones.length} inscripciones.`;
 }
 /* Avance del alumno en un curso (sale de la hoja Avance) */
@@ -1035,6 +1079,288 @@ function renderCertificados() {
   if(!arr.length) tbody.innerHTML=emptyRow(7,DATA.egresados.length?'No se encontraron certificados.':'Todavía no hay certificados cargados.'); else tbody.innerHTML=arr.map(e=>{const estado=String(e.Estado||'Pendiente').trim();const pdf=e.URL_PDF?`<a href="${esc(e.URL_PDF)}" target="_blank" rel="noopener" class="btn btn-success">Ver PDF</a>`:'—';return `<tr><td>${esc(e.Certificado)}</td><td>${esc(e.Nombre_Alumno)}</td><td>${esc(e.Curso)}</td><td>${esc(e.Tipo)}</td><td><span class="badge ${estado.toLowerCase()}">${esc(estado)}</span></td><td>${pdf}</td><td class="actions"><button class="btn btn-secondary btn-small" onclick="enviarPorMail(${e._row})">Enviar</button><button class="btn btn-secondary btn-small" onclick="openFormEgresadoEditar(${e._row})">Editar</button><button class="btn btn-danger" onclick="removeItem('Egresado','egresados',${e._row})">Borrar</button></td></tr>`;}).join('');
   const c=document.getElementById('contador-certificados');if(c)c.textContent=`${arr.length} de ${DATA.egresados.length} certificados.`;
 }
+/* ============================================================
+   EXÁMENES FINALES (uno por curso, multiple choice)
+   ============================================================ */
+
+let examenCursoSel = null;   // curso abierto en la pestaña Exámenes
+
+function guardarDatosExamenes(r) {
+  DATA.examenes = (r && r.examenes) || [];
+  DATA.preguntasEx = (r && r.preguntas) || [];
+  DATA.resultadosEx = (r && r.resultados) || [];
+}
+async function recargarExamenes() {
+  try { guardarDatosExamenes(await api('getExamenes', {})); } catch (e) { showToast('Error cargando exámenes: ' + e.message, true); }
+  renderExamenes(); renderInscripciones();
+}
+function examenDeCurso(idCurso) { return DATA.examenes.find(x => String(x.ID_Curso) === String(idCurso)) || null; }
+function preguntasDeExamen(idExamen) {
+  return DATA.preguntasEx.filter(p => String(p.ID_Examen) === String(idExamen))
+    .sort((a, b) => (Number(a.Orden) || 0) - (Number(b.Orden) || 0));
+}
+function resultadosDeExamen(idExamen) { return DATA.resultadosEx.filter(r => String(r.ID_Examen) === String(idExamen)); }
+function esSi(v) { return String(v || '').trim().toLowerCase() === 'si'; }
+function fechaHoraAdmin(v) {
+  if (!v) return '';
+  const d = new Date(String(v).replace(' ', 'T'));
+  if (isNaN(d.getTime())) return String(v);
+  return d.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' }) + ' ' +
+    d.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
+}
+
+/* Celda "Examen final" de la tabla de Inscripciones */
+function celdaExamen(insc) {
+  const ex = examenDeCurso(insc.ID_Curso);
+  if (!ex) return '<span style="color:var(--ink-soft)">—</span>';
+  const rs = resultadosDeExamen(ex.ID_Examen).filter(r => String(r.ID_Alumno).trim() === String(insc.ID_Alumno).trim());
+  if (!rs.length) return '<span style="color:var(--ink-soft)">Sin rendir</span>';
+  const total = (Number(ex.Intentos_Max) || 0) + (Number(insc.Intentos_Extra) || 0);
+  const fin = rs.filter(r => String(r.Estado) !== 'En curso');
+  const aprob = fin.filter(r => esSi(r.Aprobado));
+  const mejor = fin.reduce((m, r) => Math.max(m, Number(r.Puntaje) || 0), 0);
+  if (aprob.length) return `<span class="badge aprobado">Aprobado</span><span class="celda-sub">${mejor}% · intento ${esc(aprob[0].Intento)}</span>`;
+  if (fin.length < rs.length) return `<span class="badge encurso">Rindiendo</span><span class="celda-sub">intento ${rs.length} de ${total}</span>`;
+  return `<span class="badge noaprobado">No aprobado</span><span class="celda-sub">${mejor}% · ${rs.length} de ${total} intentos</span>`;
+}
+/* Celda "Práctico" de la tabla de Inscripciones */
+function celdaPractico(insc) {
+  const nota = String(insc.Nota_Practico ?? '').trim();
+  const res = String(insc.Resultado_Practico || '').trim();
+  if (!nota && !res) return '<span style="color:var(--ink-soft)">—</span>';
+  const badge = res ? `<span class="badge ${res === 'Aprobado' ? 'aprobado' : 'noaprobado'}">${esc(res)}</span>` : '';
+  return `${badge}${nota ? `<span class="celda-sub">Nota: ${esc(nota)}</span>` : ''}`;
+}
+
+function renderExamenes() {
+  const cont = document.getElementById('examenes-container');
+  if (!cont) return;
+  const curso = examenCursoSel && DATA.cursos.find(c => String(c.ID_Curso) === String(examenCursoSel));
+  if (curso) { cont.innerHTML = vistaExamenCurso(curso); return; }
+  examenCursoSel = null;
+  const filas = DATA.cursos.map(c => {
+    const ex = examenDeCurso(c.ID_Curso);
+    if (!ex) return `<tr><td>${esc(c.Nombre)}</td><td><span style="color:var(--ink-soft)">Sin examen</span></td><td>—</td><td>—</td><td>—</td>
+      <td class="actions"><button class="btn btn-secondary btn-small" onclick="abrirExamenCurso('${esc(c.ID_Curso)}')">Armar examen</button></td></tr>`;
+    const rs = resultadosDeExamen(ex.ID_Examen).filter(r => String(r.Estado) !== 'En curso');
+    const rindieron = new Set(rs.map(r => String(r.ID_Alumno))).size;
+    const aprobaron = new Set(rs.filter(r => esSi(r.Aprobado)).map(r => String(r.ID_Alumno))).size;
+    const pub = String(ex.Estado) === 'Publicado';
+    return `<tr><td>${esc(c.Nombre)}</td><td><span class="badge ${pub ? 'publicado' : 'borrador'}">${pub ? 'Publicado' : 'Borrador'}</span></td>
+      <td>${preguntasDeExamen(ex.ID_Examen).length}</td><td>${rindieron}</td><td>${aprobaron}</td>
+      <td class="actions"><button class="btn btn-secondary btn-small" onclick="abrirExamenCurso('${esc(c.ID_Curso)}')">Ver examen</button></td></tr>`;
+  }).join('');
+  cont.innerHTML = `
+    <div class="section-head">
+      <div><h1>Exámenes</h1><p>Examen final de cada curso. El alumno lo puede rendir cuando completó todas las clases.</p></div>
+    </div>
+    <table><thead><tr><th>Curso</th><th>Examen</th><th>Preguntas</th><th>Rindieron</th><th>Aprobaron</th><th></th></tr></thead>
+    <tbody>${filas || emptyRow(6, 'Primero cargá un curso.')}</tbody></table>`;
+}
+
+function abrirExamenCurso(idCurso) { examenCursoSel = idCurso; renderExamenes(); window.scrollTo(0, 0); }
+function volverExamenes() { examenCursoSel = null; renderExamenes(); window.scrollTo(0, 0); }
+
+function vistaExamenCurso(curso) {
+  const ex = examenDeCurso(curso.ID_Curso);
+  const volver = `<button class="btn-back" onclick="volverExamenes()">← Volver a exámenes</button>`;
+  if (!ex) return `
+    <div class="ex-head"><div>${volver}<h2>${esc(curso.Nombre)}</h2></div></div>
+    <div class="ex-card">
+      <h3>Este curso todavía no tiene examen</h3>
+      <p class="sub">Se crea como borrador con 70% para aprobar y 2 intentos. Después cargás las preguntas y lo publicás.</p>
+      <button class="btn btn-primary" onclick="crearExamen('${esc(curso.ID_Curso)}')">Crear examen</button>
+    </div>`;
+  const pregs = preguntasDeExamen(ex.ID_Examen);
+  const pub = String(ex.Estado) === 'Publicado';
+  const rs = resultadosDeExamen(ex.ID_Examen).slice().sort((a, b) => String(b.Inicio).localeCompare(String(a.Inicio)));
+  const v = (k, d) => esc(ex[k] === '' || ex[k] === undefined || ex[k] === null ? d : ex[k]);
+  return `
+    <div class="ex-head">
+      <div>${volver}<h2>Examen · ${esc(curso.Nombre)}</h2></div>
+      <div class="ex-acciones">
+        <span class="badge ${pub ? 'publicado' : 'borrador'}">${pub ? 'Publicado' : 'Borrador'}</span>
+        <button class="btn btn-secondary btn-small" onclick="vistaPreviaExamen()" ${pregs.length ? '' : 'disabled'}>Vista previa</button>
+        <button class="btn btn-primary btn-small" onclick="guardarExamen('${pub ? 'Borrador' : 'Publicado'}')">${pub ? 'Pasar a borrador' : 'Publicar examen'}</button>
+      </div>
+    </div>
+
+    <div class="ex-card">
+      <h3>Configuración</h3>
+      <p class="sub">${pub ? 'Los alumnos ya pueden ver este examen. Si cambiás algo, rige para los próximos intentos.' : 'Mientras esté en borrador, los alumnos no lo ven.'}</p>
+      <div class="ex-config">
+        <div class="field ancho"><label for="ex_Titulo">Título</label><input id="ex_Titulo" type="text" value="${v('Titulo', 'Examen final')}"></div>
+        <div class="field"><label for="ex_Nota_Minima">Nota mínima para aprobar (%)</label><input id="ex_Nota_Minima" type="number" min="1" max="100" value="${v('Nota_Minima', 70)}"></div>
+        <div class="field"><label for="ex_Intentos_Max">Intentos permitidos</label><input id="ex_Intentos_Max" type="number" min="1" max="20" value="${v('Intentos_Max', 2)}"></div>
+        <div class="field"><label for="ex_Tiempo_Min">Tiempo límite (minutos)</label><input id="ex_Tiempo_Min" type="number" min="0" max="600" value="${v('Tiempo_Min', 0)}"><div class="field-hint">0 = sin límite de tiempo.</div></div>
+        <div class="field"><label for="ex_Mezclar">Mezclar preguntas</label><select id="ex_Mezclar">
+          <option value="No" ${esSi(ex.Mezclar) ? '' : 'selected'}>No, en el orden cargado</option>
+          <option value="Si" ${esSi(ex.Mezclar) ? 'selected' : ''}>Sí, distinto orden a cada alumno</option></select></div>
+        <div class="field ancho"><label for="ex_Instrucciones">Instrucciones para el alumno</label><textarea id="ex_Instrucciones" placeholder="Ej: Leé cada pregunta con atención. Hay una sola respuesta correcta.">${v('Instrucciones', '')}</textarea></div>
+      </div>
+      <div class="ex-acciones">
+        <button class="btn btn-primary" onclick="guardarExamen()">Guardar configuración</button>
+        <button class="btn btn-danger" onclick="borrarExamen()">Borrar examen</button>
+      </div>
+    </div>
+
+    <div class="ex-card">
+      <div class="clases-header" style="margin-bottom:14px">
+        <div><h3>Preguntas (${pregs.length})</h3><p class="sub" style="margin:0">Cada pregunta vale lo mismo. Marcá la respuesta correcta al cargarla.</p></div>
+        <button class="btn btn-primary" onclick="formPreguntaEx()">+ Agregar pregunta</button>
+      </div>
+      ${pregs.length ? pregs.map((p, i) => `
+        <div class="ex-preg">
+          <div class="num">${i + 1}</div>
+          <div class="cuerpo">
+            <strong>${esc(p.Pregunta)}</strong>
+            <ol>${['A', 'B', 'C', 'D'].filter(l => String(p['Opcion_' + l] || '').trim()).map(l =>
+              `<li class="${String(p.Correcta).toUpperCase() === l ? 'ok' : ''}"><b>${l})</b>${esc(p['Opcion_' + l])}</li>`).join('')}</ol>
+          </div>
+          <div class="acciones">
+            <button class="btn btn-secondary btn-small" onclick="formPreguntaEx(${p._row})">Editar</button>
+            <button class="btn btn-danger" onclick="borrarPreguntaEx(${p._row})">Borrar</button>
+          </div>
+        </div>`).join('') : '<p class="ex-vacio">Todavía no hay preguntas. Tocá “+ Agregar pregunta”.</p>'}
+    </div>
+
+    <div class="ex-card">
+      <h3>Resultados</h3>
+      <p class="sub">El alumno solo ve si aprobó o no. El puntaje lo ves acá. La nota del práctico se carga en Inscripciones → Editar.</p>
+      <table><thead><tr><th>Alumno</th><th>Intento</th><th>Fecha</th><th>Correctas</th><th>Puntaje</th><th>Resultado</th></tr></thead><tbody>
+      ${rs.length ? rs.map(r => {
+        const enCurso = String(r.Estado) === 'En curso';
+        const res = enCurso ? '<span class="badge encurso">Rindiendo</span>' :
+          esSi(r.Aprobado) ? '<span class="badge aprobado">Aprobado</span>' : '<span class="badge noaprobado">No aprobado</span>';
+        return `<tr><td>${alumnoNombre(r.ID_Alumno)}</td><td>${esc(r.Intento)}</td><td>${esc(fechaHoraAdmin(r.Fin || r.Inicio))}</td>
+          <td>${enCurso ? '—' : esc(r.Correctas) + ' de ' + esc(r.Total)}</td><td>${enCurso ? '—' : esc(r.Puntaje) + '%'}</td><td>${res}</td></tr>`;
+      }).join('') : emptyRow(6, 'Nadie rindió este examen todavía.')}
+      </tbody></table>
+    </div>`;
+}
+
+async function crearExamen(idCurso) {
+  try {
+    await api('addExamen', { data: { ID_Curso: idCurso, Titulo: 'Examen final', Nota_Minima: 70, Intentos_Max: 2, Tiempo_Min: 0, Mezclar: 'No', Instrucciones: '' } });
+    showToast('Examen creado. Ahora cargá las preguntas.');
+    await recargarExamenes();
+  } catch (e) { showToast('Error: ' + e.message, true); }
+}
+
+async function guardarExamen(nuevoEstado) {
+  const ex = examenDeCurso(examenCursoSel);
+  if (!ex) return;
+  const val = id => document.getElementById('ex_' + id).value;
+  const data = {
+    Titulo: val('Titulo'), Nota_Minima: val('Nota_Minima'), Intentos_Max: val('Intentos_Max'),
+    Tiempo_Min: val('Tiempo_Min'), Mezclar: val('Mezclar'), Instrucciones: val('Instrucciones'),
+    Estado: nuevoEstado || ex.Estado || 'Borrador'
+  };
+  if (nuevoEstado === 'Publicado' && !preguntasDeExamen(ex.ID_Examen).length) {
+    showToast('Para publicar el examen primero cargá al menos una pregunta.', true); return;
+  }
+  try {
+    await api('updateExamen', { row: ex._row, expect: expectDe('examenes', ex._row), data });
+    showToast(nuevoEstado === 'Publicado' ? 'Examen publicado: los alumnos que terminaron el curso ya lo pueden rendir.' :
+      nuevoEstado === 'Borrador' ? 'El examen pasó a borrador: los alumnos ya no lo ven.' : 'Configuración guardada.');
+    await recargarExamenes();
+  } catch (e) { showToast('Error al guardar: ' + e.message, true); }
+}
+
+async function borrarExamen() {
+  const ex = examenDeCurso(examenCursoSel);
+  if (!ex) return;
+  if (!confirm('¿Borrar este examen y todas sus preguntas? Los resultados de los alumnos que ya rindieron quedan guardados en la planilla.')) return;
+  try {
+    await api('deleteExamen', { row: ex._row, expect: expectDe('examenes', ex._row) });
+    showToast('Examen borrado.');
+    await recargarExamenes();
+  } catch (e) { showToast('Error al borrar: ' + e.message, true); }
+}
+
+let editandoPreguntaEx = null;
+function formPreguntaEx(row) {
+  const ex = examenDeCurso(examenCursoSel);
+  if (!ex) return;
+  editandoPreguntaEx = row || null;
+  const p = row ? DATA.preguntasEx.find(x => x._row === row) : null;
+  const pregs = preguntasDeExamen(ex.ID_Examen);
+  const orden = p ? p.Orden : pregs.reduce((m, x) => Math.max(m, Number(x.Orden) || 0), 0) + 1;
+  const correcta = p ? String(p.Correcta || '').toUpperCase() : '';
+  const filaOpcion = l => `<div class="opcion-fila">
+      <input type="radio" name="pex_correcta" value="${l}" id="pex_ok_${l}" ${correcta === l ? 'checked' : ''} aria-label="La opción ${l} es la correcta">
+      <span class="letra">${l}</span>
+      <input type="text" id="pex_${l}" value="${esc(p ? p['Opcion_' + l] : '')}" placeholder="${l === 'C' || l === 'D' ? 'Opcional' : 'Texto de la opción ' + l}">
+    </div>`;
+  document.getElementById('form-panel').innerHTML = `
+    <h3>${p ? 'Editar' : 'Nueva'} pregunta</h3>
+    <div class="field"><label for="pex_Pregunta">Pregunta</label><textarea id="pex_Pregunta">${esc(p ? p.Pregunta : '')}</textarea></div>
+    <div class="field"><label>Opciones</label>
+      ${['A', 'B', 'C', 'D'].map(filaOpcion).join('')}
+      <div class="field-hint">Marcá con el círculo cuál es la respuesta correcta. C y D son opcionales.</div>
+    </div>
+    <div class="field"><label for="pex_Orden">Orden</label><input id="pex_Orden" type="number" min="1" value="${esc(orden)}"></div>
+    <div class="form-actions">
+      <button class="btn btn-primary" onclick="guardarPreguntaEx()">Guardar</button>
+      <button class="btn btn-secondary" onclick="closeForm()">Cancelar</button>
+    </div>`;
+  document.getElementById('form-panel').style.display = 'block';
+  document.getElementById('overlay').style.display = 'block';
+  document.getElementById('pex_Pregunta').focus();
+}
+
+async function guardarPreguntaEx() {
+  const ex = examenDeCurso(examenCursoSel);
+  if (!ex) return;
+  const val = id => document.getElementById('pex_' + id).value.trim();
+  const marcada = document.querySelector('input[name="pex_correcta"]:checked');
+  const data = { Pregunta: val('Pregunta'), Opcion_A: val('A'), Opcion_B: val('B'), Opcion_C: val('C'), Opcion_D: val('D'),
+    Correcta: marcada ? marcada.value : '', Orden: val('Orden') };
+  if (!data.Pregunta) { showToast('Escribí la pregunta.', true); return; }
+  if (!data.Opcion_A || !data.Opcion_B) { showToast('Completá al menos las opciones A y B.', true); return; }
+  if (!data.Opcion_C && data.Opcion_D) { showToast('Si usás la opción D, completá también la C.', true); return; }
+  if (!data.Correcta || !data['Opcion_' + data.Correcta]) { showToast('Marcá con el círculo cuál es la respuesta correcta.', true); return; }
+  try {
+    if (editandoPreguntaEx) {
+      await api('updatePreguntaEx', { row: editandoPreguntaEx, expect: expectDe('preguntasEx', editandoPreguntaEx), data });
+      showToast('Pregunta actualizada.');
+    } else {
+      data.ID_Examen = ex.ID_Examen;
+      await api('addPreguntaEx', { data });
+      showToast('Pregunta agregada.');
+    }
+    closeForm();
+    await recargarExamenes();
+  } catch (e) { showToast('Error al guardar: ' + e.message, true); }
+}
+
+async function borrarPreguntaEx(row) {
+  if (!confirm('¿Borrar esta pregunta?')) return;
+  try {
+    await api('deletePreguntaEx', { row, expect: expectDe('preguntasEx', row) });
+    showToast('Pregunta borrada.');
+    await recargarExamenes();
+  } catch (e) { showToast('Error al borrar: ' + e.message, true); }
+}
+
+/* Muestra el examen como lo ve el alumno (sin marcar la correcta) */
+function vistaPreviaExamen() {
+  const ex = examenDeCurso(examenCursoSel);
+  if (!ex) return;
+  const pregs = preguntasDeExamen(ex.ID_Examen);
+  const tiempo = Number(ex.Tiempo_Min) || 0;
+  document.getElementById('form-panel').innerHTML = `
+    <h3>${esc(ex.Titulo || 'Examen final')} <small style="display:block;font-family:'Jost',sans-serif;font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--rose-deep);margin-top:6px">Vista previa</small></h3>
+    <p style="color:var(--ink-soft);font-size:13.5px;margin:0 0 18px">${pregs.length} preguntas · ${tiempo ? tiempo + ' minutos' : 'sin límite de tiempo'} · se aprueba con ${esc(ex.Nota_Minima)}%</p>
+    ${ex.Instrucciones ? `<p style="white-space:pre-wrap;font-size:14px;margin:0 0 20px">${esc(ex.Instrucciones)}</p>` : ''}
+    ${pregs.map((p, i) => `<div class="previa-preg"><p>${i + 1}. ${esc(p.Pregunta)}</p>
+      ${['A', 'B', 'C', 'D'].filter(l => String(p['Opcion_' + l] || '').trim()).map(l =>
+        `<label><input type="radio" name="prev_${i}">${esc(p['Opcion_' + l])}</label>`).join('')}</div>`).join('')}
+    <div class="form-actions"><button class="btn btn-secondary" onclick="closeForm()">Cerrar vista previa</button></div>`;
+  document.getElementById('form-panel').style.display = 'block';
+  document.getElementById('overlay').style.display = 'block';
+}
+
 /* ============================================================
    ACCIONES CURSOS (cerrar / reabrir / borrar)
    ============================================================ */
@@ -1208,7 +1534,14 @@ const FORM_DEFS = {
       {name:'ID_Alumno', label:'Alumno', type:'select', source:'alumnos', optionValue:'ID_Alumno', optionLabel:'Nombre', required:true},
       {name:'ID_Curso', label:'Curso', type:'select', source:'cursos', optionValue:'ID_Curso', optionLabel:'Nombre', required:true},
       {name:'Fecha_Alta', label:'Fecha de alta', type:'date', required:true, defaultToday:true},
-      {name:'Habilitado', label:'Habilitado', type:'select-fixed', options:['Si','No'], required:true}
+      {name:'Habilitado', label:'Habilitado', type:'select-fixed', options:['Si','No'], required:true},
+      {type:'section', label:'Examen práctico', onlyOnEdit:true},
+      {name:'Nota_Practico', label:'Nota del práctico', type:'text', onlyOnEdit:true, hint:'Ej: 8 o 8,5. Queda registrada como historia del alumno.'},
+      {name:'Resultado_Practico', label:'Resultado del práctico', type:'select-fixed', options:['', 'Aprobado', 'Desaprobado'], onlyOnEdit:true},
+      {name:'Fecha_Practico', label:'Fecha del práctico', type:'date', onlyOnEdit:true},
+      {name:'Obs_Practico', label:'Observaciones', type:'textarea', onlyOnEdit:true},
+      {type:'section', label:'Examen final (teórico)', onlyOnEdit:true},
+      {name:'Intentos_Extra', label:'Intentos extra', type:'number', onlyOnEdit:true, hint:'Si el alumno ya usó todos sus intentos, poné 1 para que pueda rendir una vez más.'}
     ]
   }
 };
@@ -1229,7 +1562,7 @@ function openForm(kind, row) {
   const existing = row ? DATA[def.dataKey].find(x => x._row === row) : null;
 
   let html = `<h3>${existing ? 'Editar' : 'Nuevo'} ${def.title.toLowerCase()}</h3><div id="form-fields">`;
-  def.fields.forEach(f => { html += renderField(f, existing); });
+  def.fields.filter(f => !f.onlyOnEdit || existing).forEach(f => { html += renderField(f, existing); });
   html += `</div>
     <div class="form-actions">
       <button class="btn btn-primary" onclick="submitForm('${kind}')">Guardar</button>
@@ -1246,6 +1579,7 @@ function renderField(f, existing) {
   if (!existing && f.defaultToday && !val) val = hoyISO();
   const id = 'f_' + f.name;
 
+  if (f.type === 'section') return `<div class="form-section">${esc(f.label)}</div>`;
   if (f.type === 'select') {
     const options = DATA[f.source].map(item =>
       `<option value="${esc(item[f.optionValue])}" ${String(item[f.optionValue])===String(val)?'selected':''}>${esc(item[f.optionLabel])}</option>`
@@ -1268,7 +1602,7 @@ function renderField(f, existing) {
     return `<div class="field"><label>${f.label}</label><input type="date" id="${id}" value="${esc(val)}">${f.hint ? `<div class="field-hint">${f.hint}</div>` : ''}</div>`;
   }
   if (f.type === 'number') {
-    return `<div class="field"><label>${f.label}</label><input type="number" id="${id}" value="${esc(val)}"></div>`;
+    return `<div class="field"><label>${f.label}</label><input type="number" id="${id}" value="${esc(val)}">${f.hint ? `<div class="field-hint">${f.hint}</div>` : ''}</div>`;
   }
   if (f.type === 'youtube') {
     return `<div class="field"><label>${f.label}</label><input type="text" id="${id}" value="${esc(val)}" placeholder="Pegá el link o el ID del video">
@@ -1290,7 +1624,7 @@ function renderField(f, existing) {
       ${existing ? '<div class="field-hint">Por seguridad no se muestra la contraseña actual. Escribí una nueva solo si querés cambiarla.</div>' : ''}</div>`;
   }
   const lock = (f.lockOnEdit && existing) ? 'disabled' : '';
-  return `<div class="field"><label>${f.label}</label><input type="text" id="${id}" value="${esc(val)}" ${lock}></div>`;
+  return `<div class="field"><label>${f.label}</label><input type="text" id="${id}" value="${esc(val)}" ${lock}>${f.hint ? `<div class="field-hint">${f.hint}</div>` : ''}</div>`;
 }
 
 function closeForm() {
@@ -1564,6 +1898,7 @@ async function submitForm(kind) {
   const def = FORM_DEFS[kind];
   const data = {};
   for (const f of def.fields) {
+    if (!f.name) continue;
     const el = document.getElementById('f_' + f.name);
     if (!el) continue;
     let value = el.value;
